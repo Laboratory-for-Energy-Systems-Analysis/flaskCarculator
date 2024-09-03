@@ -1,14 +1,7 @@
 from flask import Blueprint, request, jsonify
 from .validation import validate_input
 from .lca import initialize_model
-# from .lca import (
-#     extract_vehicle_parameters,
-#     initialize_car_model,
-#     set_vehicle_properties,
-#     calculate_lca_results,
-#     format_response
-# )
-from .validation import validate_input_data
+
 
 main = Blueprint('main', __name__)
 
