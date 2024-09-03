@@ -28,6 +28,8 @@ def calculate_lca():
 
     models = {params["id"]: initialize_model(params) for params in data["vehicles"]}
 
+    print(models)
+
     # set_vehicle_properties(car_model, vehicle_params)
     #
     # lca_results = calculate_lca_results(car_model, vehicle_params)
