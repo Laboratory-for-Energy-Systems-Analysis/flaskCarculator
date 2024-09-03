@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from .validation import validate
+from .validation import validate_input
+from .lca import initialize_model
 # from .lca import (
 #     extract_vehicle_parameters,
 #     initialize_car_model,
@@ -21,13 +22,12 @@ def calculate_lca():
     data = request.json
 
     # Validate the received data
-    data, validation_errors = validate(data)
-    if validation_errors:
+    data, validation_errors = validate_input(data)
+    if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    # vehicle_params = extract_vehicle_parameters(data)
-    #
-    # car_model = initialize_car_model(vehicle_params)
+    models = {params["id"]: initialize_model(params) for params in data["vehicles"]}
+
     # set_vehicle_properties(car_model, vehicle_params)
     #
     # lca_results = calculate_lca_results(car_model, vehicle_params)

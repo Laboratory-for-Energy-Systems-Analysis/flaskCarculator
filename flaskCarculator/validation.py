@@ -2,7 +2,7 @@
 This module contains functions to validate the input data.
 """
 
-from .data.mapping import TCS_FUEL_BLEND, TCS_SIZE, TCS_PARAMETERS, TCS_POWERTRAIN, CAR_POWERTRAINS, CAR_SIZES, \
+from .data.mapping import TCS_SIZE, TCS_PARAMETERS, TCS_POWERTRAIN, CAR_POWERTRAINS, CAR_SIZES, \
     CAR_BATTERIES
 
 
@@ -14,9 +14,9 @@ def get_mapping(vehicle_type: str) -> dict:
     """
     mappings = {
         "car": {
-            "powertrain": CAR_POWERTRAINS,
-            "size": CAR_SIZES,
-            "battery": CAR_BATTERIES,
+            "powertrain": CAR_POWERTRAINS["powertrain"],
+            "size": CAR_SIZES["size"],
+            "battery": CAR_BATTERIES["battery"],
         },
     }
 
@@ -32,7 +32,7 @@ def validate_input_data(data: dict) -> list:
 
     # Check if required fields are present
     required_fields = [
-        "car_id",
+        "id",
         "vehicle_type",
         "powertrain",
         "year",
@@ -41,78 +41,77 @@ def validate_input_data(data: dict) -> list:
 
     errors = []
 
-    for vehicle in data["vehicles"]:
-        vehicle_errors = []
+    for v, vehicle in enumerate(data["vehicles"]):
         for field in required_fields:
             if field not in vehicle:
-                vehicle_errors.append(f"Missing required field: {field}")
+                errors.append(f"Vehicle {v} missing required field: {field}")
 
         vehicle_mapping = get_mapping(vehicle["vehicle_type"])
 
         # Check if 'size' is valid
         if vehicle.get("size") not in vehicle_mapping["size"]:
-            vehicle_errors.append(
-                f"Invalid size value: {vehicle['size']}. Should be one of {vehicle_mapping['size'].keys()}"
+            errors.append(
+                f"Vehicle {v} has invalid size value: {vehicle['size']}. Should be one of {vehicle_mapping['size'].keys()}"
             )
 
         # Check if 'powertrain' is valid
         if vehicle.get("powertrain") not in vehicle_mapping["powertrain"]:
-            vehicle_errors.append(
-                f"Invalid powertrain value: {vehicle['powertrain']}. Should be one of {vehicle_mapping['powertrain'].keys()}"
+            errors.append(
+                f"Vehicle {v} has invalid powertrain value: {vehicle['powertrain']}. Should be one of {vehicle_mapping['powertrain'].keys()}"
             )
 
         # Check if 'curb mass' is a positive number
         if "curb mass" in vehicle and not isinstance(vehicle["curb mass"], (int, float)):
-            errors.append(f"Invalid curb mass value: {vehicle['curb mass']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid curb mass value: {vehicle['curb mass']} (must be a number)")
         elif "curb mass" in vehicle and vehicle["curb mass"] <= 0:
-            errors.append(f"curb must be greater than 0.")
+            errors.append(f"Vehicle {v} has: curb mass must be greater than 0.")
 
         # Check if 'cargo mass' is a positive number
         if "cargo mass" in vehicle and not isinstance(vehicle["cargo mass"], (int, float)):
-            errors.append(f"Invalid cargo mass value: {vehicle['cargo mass']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid cargo mass value: {vehicle['cargo mass']} (must be a number)")
         elif "cargo mass" in vehicle and vehicle["cargo mass"] <= 0:
-            errors.append(f"cargo mass must be greater than 0.")
+            errors.append(f"Vehicle {v}: cargo mass must be greater than 0.")
 
         # Check if 'driving mass' is a positive number
         if "driving mass" in vehicle and not isinstance(vehicle["driving mass"], (int, float)):
-            errors.append(f"Invalid driving mass value: {vehicle['driving mass']} (must be a number)")
+            errors.append(f"Vehicle {v} has has invalid driving mass value: {vehicle['driving mass']} (must be a number)")
         elif "driving mass" in vehicle and vehicle["driving mass"] <= 0:
-            errors.append(f"driving mass must be greater than 0.")
+            errors.append(f"Vehicle {v}: driving mass must be greater than 0.")
 
         # Check if engine powers are valid numbers
         if "engine power" in vehicle and not isinstance(vehicle["engine power"], (int, float)):
-            errors.append(f"Invalid engine power value: {vehicle['engine power']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid engine power value: {vehicle['engine power']} (must be a number)")
 
         if "total engine power" in vehicle and not isinstance(vehicle["total engine power"], (int, float)):
-            errors.append(f"Invalid total engine power value: {vehicle['total engine power']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid total engine power value: {vehicle['total engine power']} (must be a number)")
 
-        # Check if 'fuel_tank_mass' is a valid number
-        if "fuel tank mass" in vehicle and not isinstance(vehicle["fuel tank mass"], (int, float)):
-            errors.append(f"Invalid fuel tank mass value: {vehicle['fuel tank mass']} (must be a number)")
+        # Check if 'fuel tank volume' is a valid number
+        if "fuel tank volume" in vehicle and not isinstance(vehicle["fuel tank volume"], (int, float)):
+            errors.append(f"Vehicle {v} has invalid fuel tank mass value: {vehicle['fuel tank volume']} (must be a number)")
 
         # Check if `battery type` is valid
-        if "battery type" in vehicle and vehicle["battery type"] not in vehicle_mapping["battery"]:
+        if "battery technology" in vehicle and vehicle["battery technology"] not in vehicle_mapping["battery"]:
             errors.append(
-                f"Invalid battery type value: {vehicle['battery type']}. Should be one of {vehicle_mapping['battery'].keys()}"
+                f"Vehicle {v} has invalid battery type value: {vehicle['battery technology']}. Should be one of {vehicle_mapping['battery']}"
             )
 
         # Check if 'battery capacity' is a valid number
         if "battery capacity" in vehicle and not isinstance(vehicle["battery capacity"], (int, float)):
-            errors.append(f"Invalid battery capacity value: {vehicle['battery capacity']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid battery capacity value: {vehicle['battery capacity']} (must be a number)")
         elif "battery capacity" in vehicle and vehicle["battery capacity"] <= 0:
-            errors.append(f"battery capacity must be greater than 0.")
+            errors.append(f"Vehicle {v}: battery capacity must be greater than 0.")
 
         # Check if 'range' is a valid number
         if "range" in vehicle and not isinstance(vehicle["range"], (int, float)):
-            errors.append(f"Invalid range value: {vehicle['range']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid range value: {vehicle['range']} (must be a number)")
         elif "range" in vehicle and vehicle["range"] <= 0:
-            errors.append(f"range must be greater than 0.")
+            errors.append(f"Vehicle {v}: range must be greater than 0.")
 
         # Check if 'TtW energy' (energy use, in kj) is a valid number
         if "TtW energy" in vehicle and not isinstance(vehicle["TtW energy"], (int, float)):
-            errors.append(f"Invalid TtW energy value: {vehicle['TtW energy']} (must be a number)")
+            errors.append(f"Vehicle {v} has invalid TtW energy value: {vehicle['TtW energy']} (must be a number)")
         elif "TtW energy" in vehicle and vehicle["TtW energy"] <= 0:
-            errors.append(f"TtW energy must be greater than 0.")
+            errors.append(f"Vehicle {v}: TtW energy must be greater than 0.")
 
     return errors
 
@@ -148,14 +147,12 @@ def translate_tcs_to_carculator(data: dict) -> dict:
 
         translated_data.append(new_vehicle)
 
-        print(translated_data)
-
     data["vehicles"] = translated_data
 
     return data
 
 
-def validate(data: dict) -> [list, list]:
+def validate_input(data: dict) -> [list, list]:
     """
     Validates the received data. Checks for required fields and valid values.
     Returns a list of errors, or an empty list if the data is valid.

@@ -9,9 +9,10 @@ data = {
     "country_code": "CH",
     "vehicles": [
         {
-            "car_id": "ICEV001",
+            "id": "ICEV001",
             "vehicle_type": "car",
             "tsa": "B",
+            "year": 2020,
             "fzklasse": 30008,
             "leer": 1400,
             "nutz": 500,
@@ -21,13 +22,12 @@ data = {
             "tank": 45,
             "ver_abs": 7.8,
             "bat_km_tcs": 650,
-            "bat_cap": 0,
-            "bat_typ": "N/A",
             "bat_km_WLTP": 0
         },
         {
-            "car_id": "BEV001",
+            "id": "BEV001",
             "vehicle_type": "car",
+            "year": 2023,
             "tsa": "E",
             "fzklasse": 30024,
             "leer": 2200,
@@ -39,12 +39,13 @@ data = {
             "ver_abs": 15.5,
             "bat_km_tcs": 400,
             "bat_cap": 80,
-            "bat_typ": "NMC-66",
+            "bat_typ": "NMC-622",
             "bat_km_WLTP": 450
         },
         {
-            "car_id": "PHEV001",
+            "id": "PHEV001",
             "vehicle_type": "car",
+            "year": 2025,
             "tsa": "C1",
             "fzklasse": 30002,
             "leer": 1700,
