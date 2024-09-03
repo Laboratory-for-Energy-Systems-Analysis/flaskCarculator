@@ -1,0 +1,11 @@
+battery:
+  - NMC-111
+  - NMC-523
+  - NMC-622
+  - NMC-811
+  - NMC-955
+  - LFP
+  - NCA
+  - LTO
+  - LiO2
+  - LiS

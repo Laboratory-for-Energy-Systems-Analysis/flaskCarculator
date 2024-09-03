@@ -1,0 +1,10 @@
+powertrain:
+  - ICEV-p
+  - ICEV-d
+  - ICEV-g
+  - HEV-p
+  - HEV-d
+  - PHEV-p
+  - PHEV-d
+  - BEV
+  - FCEV

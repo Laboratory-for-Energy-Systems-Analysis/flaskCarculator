@@ -1,0 +1,31 @@
+methane:
+  primary:
+    type: "methane"
+    share: 0.8
+  secondary:
+    type: "methane - biomethane - sewage sludge"
+    share: 0.2
+
+diesel:
+  primary:
+    type: "diesel"
+    share: 1
+  secondary:
+    type: "diesel - biodiesel - cooking oil"
+    share: 0
+
+petrol:
+  primary:
+    type: "petrol"
+    share: 1.0
+  secondary:
+    type: "petrol - bioethanol - wheat straw"
+    share: 0
+
+hydrogen:
+  primary:
+    type: "hydrogen - electrolysis - PEM"
+    share: 0.939
+  secondary:
+    type: "hydrogen - smr - natural gas"
+    share: 0.061
