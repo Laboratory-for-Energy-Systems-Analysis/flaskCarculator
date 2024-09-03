@@ -74,7 +74,7 @@ def validate_input_data(data: dict) -> list:
             errors.append(f"cargo mass must be greater than 0.")
 
         # Check if 'driving mass' is a positive number
-        if "driving mass" in vehicle and not isinstance(vehicle["driving_mass"], (int, float)):
+        if "driving mass" in vehicle and not isinstance(vehicle["driving mass"], (int, float)):
             errors.append(f"Invalid driving mass value: {vehicle['driving mass']} (must be a number)")
         elif "driving mass" in vehicle and vehicle["driving mass"] <= 0:
             errors.append(f"driving mass must be greater than 0.")
