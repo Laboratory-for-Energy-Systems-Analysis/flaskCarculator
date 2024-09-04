@@ -1,4 +1,5 @@
 import requests
+import xarray as xr
 
 # Define the URL for the Flask endpoint
 url = "http://127.0.0.1:5000/calculate-lca"
@@ -21,6 +22,7 @@ data = {
             "kw_sl": 110,
             "tank": 45,
             "ver_abs": 7.8,
+            "ver": 7.8,
             "bat_km_tcs": 650,
             "bat_km_WLTP": 0
         },
@@ -40,7 +42,8 @@ data = {
             "bat_km_tcs": 400,
             "bat_cap": 80,
             "bat_typ": "NMC-622",
-            "bat_km_WLTP": 450
+            "bat_km_WLTP": 450,
+            "ver_strom": 17,
         },
         {
             "id": "PHEV001",
@@ -58,7 +61,9 @@ data = {
             "bat_km_tcs": 600,
             "bat_cap": 15,
             "bat_typ": "NMC-811",
-            "bat_km_WLTP": 50
+            "bat_km_WLTP": 50,
+            "ver_strom": 10,
+            "ver": 5.0,
         }
     ],
 }
@@ -70,7 +75,10 @@ response = requests.post(url, json=data)
 if response.status_code == 200:
     # Parse the JSON response
     result = response.json()
-    print("LCA Results:", result)
+
+    array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
+    print(array)
+
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
     print("Error:", response.text)

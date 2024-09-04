@@ -3,7 +3,7 @@ This module contains functions to validate the input data.
 """
 
 from .data.mapping import TCS_SIZE, TCS_PARAMETERS, TCS_POWERTRAIN, CAR_POWERTRAINS, CAR_SIZES, \
-    CAR_BATTERIES
+    CAR_BATTERIES, FUEL_SPECS
 
 
 def get_mapping(vehicle_type: str) -> dict:
@@ -139,6 +139,28 @@ def translate_tcs_to_carculator(data: dict) -> dict:
         if "tsa" in vehicle:
             if vehicle["tsa"] in TCS_POWERTRAIN:
                 new_vehicle["powertrain"] = TCS_POWERTRAIN[vehicle["tsa"]]
+
+        new_vehicle["TtW energy"] = 0
+        # fuel consumption, in L/100 km
+        if "ver" in vehicle:
+            new_vehicle["fuel consumption"] = vehicle["ver"]
+            new_vehicle["TtW energy"] += int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
+
+        if "ver_strom" in vehicle:
+            new_vehicle["electricity consumption"] = vehicle["ver_strom"]
+            new_vehicle["TtW energy"] += int(new_vehicle["electricity consumption"] * 3.6 * 1000 / 100)
+
+        if not any(x in vehicle for x in ["ver", "ver_strom"]):
+            if "ver_abs" in vehicle:
+                if new_vehicle["powertrain"] == "BEV":
+                    new_vehicle["electricity consumption"] = vehicle["ver_abs"]
+                else:
+                    new_vehicle["fuel consumption"] = vehicle["ver_abs"]
+
+                if new_vehicle["powertrain"] == "BEV":
+                    new_vehicle["TtW energy"] = int(new_vehicle["fuel consumption"] * 3.6 * 1000 / 100)
+                else:
+                    new_vehicle["TtW energy"] = int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
 
         # add other entries not in the mapping
         for k, v in vehicle.items():

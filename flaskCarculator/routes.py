@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from .validation import validate_input
+from .input_validation import validate_input
 from .lca import initialize_model
 
 
@@ -21,17 +21,17 @@ def calculate_lca():
 
     models = {params["id"]: initialize_model(params) for params in data["vehicles"]}
 
-    print(models)
-
-    # set_vehicle_properties(car_model, vehicle_params)
-    #
-    # lca_results = calculate_lca_results(car_model, vehicle_params)
+    for vehicle in data["vehicles"]:
+        vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
     #
     # response = format_response(lca_results)
     #
-    # return jsonify(response)
+    return jsonify(data), 200
 
-    # return basic OK
-    return jsonify({"message": "OK"}), 200
-
-
+def serialize_xarray(data):
+    """
+    Turn xarray into nested dictionary, which cna be serialized to JSON.
+    :param data: xarray
+    :return: dict
+    """
+    return data.to_dict()

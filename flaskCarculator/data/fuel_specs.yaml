@@ -1,8 +1,24 @@
-ICEV-p: 0.78
-HEV-p: 0.78
-PHEV-p: 0.78
-ICEV-d: 0.85
-HEV-d: 0.85
-PHEV-d: 0.85
-ICEV-g: 0.215
-FCEV: 0.038
+ICEV-p:
+  density: 0.78
+  lhv: 33.2
+HEV-p:
+  density: 0.78
+  lhv: 33.2
+PHEV-p:
+  density: 0.78
+  lhv: 33.2
+ICEV-d:
+  density: 0.85
+  lhv: 36.8
+HEV-d:
+  density: 0.85
+  lhv: 36.8
+PHEV-d:
+  density: 0.85
+  lhv: 36.8
+ICEV-g:
+  density: 0.215
+  lhv: 10.2
+FCEV:
+  density: 0.038
+  lhv: 120
