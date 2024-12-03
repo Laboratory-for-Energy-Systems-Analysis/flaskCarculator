@@ -2,7 +2,7 @@ import requests
 import xarray as xr
 
 # Define the URL for the Flask endpoint
-url = "http://127.0.0.1:8000/calculate-lca"
+url = "http://127.0.0.1:5000/calculate-lca"
 
 # Create the data payload to send to the server
 data = {
@@ -76,9 +76,11 @@ if response.status_code == 200:
     # Parse the JSON response
     result = response.json()
 
-    array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
-    print(array)
+    #array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
+    print(result)
 
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
     print("Error:", response.text)
+
+

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from .input_validation import validate_input
 from .lca import initialize_model
-
+from .formatting import format_results_for_tcs
 
 main = Blueprint('main', __name__)
 
@@ -22,10 +22,11 @@ def calculate_lca():
     models = {params["id"]: initialize_model(params) for params in data["vehicles"]}
 
     for vehicle in data["vehicles"]:
-        vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
-    #
-    # response = format_response(lca_results)
-    #
+        if data.get("nomenclature") == "tcs":
+            vehicle["results"] = format_results_for_tcs(models[vehicle["id"]].results)
+        else:
+            vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
+
     return jsonify(data), 200
 
 def serialize_xarray(data):

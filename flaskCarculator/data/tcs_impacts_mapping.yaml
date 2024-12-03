@@ -1,0 +1,63 @@
+lca_Primärenergie_betrieb:
+  impact_category: total
+  impact: energy chain
+
+lca_Primärenergie_wartung:
+  impact_category: total
+  impact: maintenance
+
+lca_Primärenergie_karosserie:
+    impact_category: total
+    impact: glider
+
+lca_Primärenergie_entsorgung:
+    impact_category: total
+    impact: EoL
+
+lca_Primärenergie_antrieb:
+    impact_category: total
+    impact: powertrain
+
+lca_Primärenergie_speicher:
+    impact_category: total
+    impact: energy storage
+
+lca_Primärenergie_strasse:
+    impact_category: total
+    impact: road
+
+lca_Primärenergie_direkt:
+    impact_category: total
+    impact: direct - exhaust
+
+lca_GWP_betrieb:
+    impact_category: climate change
+    impact: energy chain
+
+lca_GWP_wartung:
+    impact_category: climate change
+    impact: maintenance
+
+lca_GWP_karosserie:
+    impact_category: climate change
+    impact: glider
+
+lca_GWP_entsorgung:
+    impact_category: climate change
+    impact: EoL
+
+lca_GWP_antrieb:
+    impact_category: climate change
+    impact: powertrain
+
+lca_GWP_speicher:
+    impact_category: climate change
+    impact: energy storage
+
+lca_GWP_strasse:
+    impact_category: climate change
+    impact: road
+
+lca_GWP_direkt:
+    impact_category: climate change
+    impact: direct - exhaust
