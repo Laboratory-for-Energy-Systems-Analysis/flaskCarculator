@@ -19,11 +19,13 @@ def calculate_lca():
     if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    models = {params["id"]: initialize_model(params) for params in data["vehicles"]}
+    models = {vehicle["id"]: initialize_model(vehicle) for vehicle in data["vehicles"]}
 
     for vehicle in data["vehicles"]:
         if data.get("nomenclature") == "tcs":
-            vehicle["results"] = format_results_for_tcs(models[vehicle["id"]].results)
+            vehicle["results"] = format_results_for_tcs(
+                data=models[vehicle["id"]],
+            )
         else:
             vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
 

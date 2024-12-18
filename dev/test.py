@@ -10,23 +10,74 @@ data = {
     "nomenclature": "tcs",
     "country_code": "CH",
     "vehicles": [
-        # {
-        #     "id": "ICEV001",
-        #     "vehicle_type": "car",
-        #     "tsa": "B",
-        #     "year": 2020,
-        #     "fzklasse": 30008,
-        #     "leer": 1400,
-        #     "nutz": 500,
-        #     "gesamt": 1900,
-        #     "kw": 110,
-        #     "kw_sl": 110,
-        #     "tank": 45,
-        #     "ver_abs": 7.8,
-        #     "ver": 7.8,
-        #     "bat_km_tcs": 650,
-        #     "bat_km_WLTP": 0
-        # },
+         {
+             "id": "ICEV001",
+             "vehicle_type": "car",
+             "tsa": "B",
+             "year": 2020,
+             "fzklasse": 30008,
+             "leer": 1400,
+             "nutz": 500,
+             "gesamt": 1900,
+             "kw": 110,
+             "kw_sl": 110,
+             "tank": 45,
+             "ver_abs": 7.8,
+             "ver": 7.8,
+             "bat_km_tcs": 650,
+             "bat_km_WLTP": 0
+        },
+        {
+             "id": "ICEV002",
+             "vehicle_type": "car",
+             "tsa": "D",
+             "year": 2020,
+             "fzklasse": 30008,
+             "leer": 1400,
+             "nutz": 500,
+             "gesamt": 1900,
+             "kw": 110,
+             "kw_sl": 110,
+             "tank": 45,
+             "ver_abs": 7.8,
+             "ver": 7.8,
+             "bat_km_tcs": 650,
+             "bat_km_WLTP": 0
+        },
+{
+             "id": "ICEV003",
+             "vehicle_type": "car",
+             "tsa": "X",
+             "year": 2020,
+             "fzklasse": 30008,
+             "leer": 1400,
+             "nutz": 500,
+             "gesamt": 1900,
+             "kw": 110,
+             "kw_sl": 110,
+             "tank": 45,
+             "ver_abs": 7.8,
+             "ver": 7.8,
+             "bat_km_tcs": 650,
+             "bat_km_WLTP": 0
+        },
+{
+             "id": "ICEV004",
+             "vehicle_type": "car",
+             "tsa": "Z",
+             "year": 2020,
+             "fzklasse": 30008,
+             "leer": 1400,
+             "nutz": 500,
+             "gesamt": 1900,
+             "kw": 110,
+             "kw_sl": 110,
+             "tank": 45,
+             "ver_abs": 7.8,
+             "ver": 7.8,
+             "bat_km_tcs": 650,
+             "bat_km_WLTP": 0
+        },
         {
             "id": "BEV001",
             "vehicle_type": "car",
@@ -83,5 +134,3 @@ if response.status_code == 200:
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
     print("Error:", response.text)
-
-

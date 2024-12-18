@@ -1,0 +1,45 @@
+# Life Cycle Emission Factors for Switzerland from BAFU
+# https://www.bfe.admin.ch/bfe/de/home/effizienz/mobilitaet/die-energieetikette-fuer-personenwagen.exturl.html/aHR0cHM6Ly9wdWJkYi5iZmUuYWRtaW4uY2gvZGUvcHVibGljYX/Rpb24vZG93bmxvYWQvMTE0NTk=.html
+---
+
+# per kWh
+BEV:
+  climate change: 0.114
+  total: 9.14
+
+PHEV-e:
+  climate change: 0.114
+  total: 9.14
+
+# per liter
+ICEV-p:
+  climate change: 0.502
+  total: 42.3
+
+PHEV-c-p:
+  climate change: 0.502
+  total: 42.3
+
+HEV-p:
+  climate change: 0.502
+  total: 42.3
+
+ICEV-d:
+  climate change: 0.480
+  total: 46.1
+
+PHEV-c-d:
+  climate change: 0.480
+  total: 46.1
+
+HEV-d:
+  climate change: 0.480
+  total: 46.1
+
+ICEV-g:
+  climate change: 0.00025
+  total: 0.0434
+
+FCEV:
+  climate change: 0.00015
+  total: 0.0276
