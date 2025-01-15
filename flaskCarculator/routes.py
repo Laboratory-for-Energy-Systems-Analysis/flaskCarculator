@@ -30,7 +30,7 @@ def calculate_lca():
                     data=models[vehicle["id"]],
                 )
             elif data.get("nomenclature") == "swiss-cargo":
-                vehicle["results"] = format_results_for_swisscargo(
+                vehicle["_results"] = format_results_for_swisscargo(
                     data=models[vehicle["id"]],
                 )
             else:
@@ -80,15 +80,6 @@ def calculate_lca():
             vehicle["carculator version"] = models[vehicle["id"]].version
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
-            # Rebuild the vehicle dictionary as an OrderedDict with "results" last
-            results = vehicle.pop("results", None)
-            ordered_vehicle = OrderedDict(vehicle)
-            if results is not None:
-                ordered_vehicle["results"] = results
-            vehicle.clear()
-            vehicle.update(ordered_vehicle)
-
-
         # Clean up memory after the response is sent
         @after_this_request
         def cleanup(response):
@@ -100,7 +91,6 @@ def calculate_lca():
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
-    print(data)
     return Response(
         json.dumps(data, indent=2, sort_keys=False),  # Serialize using the ordered structure
         status=200,
