@@ -39,12 +39,31 @@ def validate_input_data(data: dict) -> list:
         "size"
     ]
 
+    list_parameters = [
+        "lifetime kilometers",
+        "annual mileage",
+        "TtW energy",
+        "payload",
+        "electric utility factor",
+        "power",
+        "curb mass",
+        "powertrain",
+        "size",
+        "year",
+        "battery technology",
+        "electric energy stored",
+    ]
+
     errors = []
 
     for v, vehicle in enumerate(data["vehicles"]):
         for field in required_fields:
             if field not in vehicle:
                 errors.append(f"Vehicle {v} missing required field: {field}")
+
+        for key in vehicle:
+            if key not in list_parameters:
+                errors.append(f"Vehicle {v} has invalid field: {key}")
 
         vehicle_mapping = get_mapping(vehicle["vehicle_type"])
 

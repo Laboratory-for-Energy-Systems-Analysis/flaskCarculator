@@ -7,6 +7,7 @@ from carculator_two_wheeler import TwoWheelerInputParameters, TwoWheelerModel, I
 from .data.mapping import FUEL_SPECS
 from .output_validation import validate_output_data
 
+
 models = {
     "car": {
         "model": CarModel,
@@ -134,6 +135,12 @@ def initialize_model(params, country="CH"):
             },
         }
 
+    if params.get("lifetime kilometers", None):
+        array.loc[dict(parameter="lifetime kilometers")] = params["lifetime kilometers"]
+
+    if params.get("annual mileage", None):
+        array.loc[dict(parameter="annual mileage")] = params["annual mileage"]
+
     if params.get("battery technology", None):
         if energy_storage is None:
             energy_storage = {}
@@ -158,6 +165,12 @@ def initialize_model(params, country="CH"):
     if params.get("TtW energy", 0) > 0:
         energy_consumption = {
             (params["powertrain"], params["size"], params["year"]): params["TtW energy"]
+        }
+
+    payload = None
+    if params.get("payload", 0) > 0:
+        payload = {
+            (params["powertrain"], params["size"], params["year"]): params["payload"]
         }
 
     m = model(
