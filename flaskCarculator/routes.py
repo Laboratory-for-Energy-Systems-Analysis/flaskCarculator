@@ -75,7 +75,6 @@ def calculate_lca():
             vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
             vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
             vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["carculator version"] = models[vehicle["id"]].inventory.scenario
             vehicle["carculator version"] = models[vehicle["id"]].version
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
