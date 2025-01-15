@@ -40,6 +40,8 @@ def validate_input_data(data: dict) -> list:
     ]
 
     list_parameters = [
+        "id",
+        "vehicle_type",
         "lifetime kilometers",
         "annual mileage",
         "TtW energy",
