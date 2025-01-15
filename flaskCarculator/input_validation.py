@@ -74,13 +74,13 @@ def validate_input_data(data: dict) -> list:
         # Check if 'size' is valid
         if vehicle.get("size") not in vehicle_mapping["size"]:
             errors.append(
-                f"Vehicle {v} has invalid size value: {vehicle.get('size')}. Should be one of {vehicle_mapping['size'].keys()}"
+                f"Vehicle {v} has invalid size value: {vehicle.get('size')}. Should be one of {vehicle_mapping['size']}"
             )
 
         # Check if 'powertrain' is valid
         if vehicle.get("powertrain") not in vehicle_mapping["powertrain"]:
             errors.append(
-                f"Vehicle {v} has invalid powertrain value: {vehicle.get('powertrain')}. Should be one of {vehicle_mapping['powertrain'].keys()}"
+                f"Vehicle {v} has invalid powertrain value: {vehicle.get('powertrain')}. Should be one of {vehicle_mapping['powertrain']}"
             )
 
         # Check if 'curb mass' is a positive number
