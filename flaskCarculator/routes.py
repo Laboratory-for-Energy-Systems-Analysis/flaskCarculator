@@ -69,7 +69,7 @@ def calculate_lca():
             if p in models[vehicle["id"]].array.parameter.values:
                 vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
 
-        vehicle["indicators"] = models[vehicle["id"]].inventory.indicator
+        vehicle["indicators"] = models[vehicle["id"]].inventory.method
         vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
         vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
         vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit

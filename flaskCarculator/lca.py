@@ -17,29 +17,29 @@ models = {
         "model": CarModel,
         "inventory": InventoryCar,
         "input_parameters": CarInputParameters,
-        "version": carculator_version,
-        "ecoinvent version": "3.10"
+        "version": str(carculator_version),
+        "ecoinvent version": "3.10.0"
     },
     "truck": {
         "model": TruckModel,
         "inventory": InventoryTruck,
         "input_parameters": TruckInputParameters,
-        "version": carculator_truck_version,
-        "ecoinvent version": "3.10"
+        "version": str(carculator_truck_version),
+        "ecoinvent version": "3.10.0"
     },
     "bus": {
         "model": BusModel,
         "inventory": InventoryBus,
         "input_parameters": BusInputParameters,
-        "version": carculator_bus_version,
-        "ecoinvent version": "3.10"
+        "version": str(carculator_bus_version),
+        "ecoinvent version": "3.10.0"
     },
     "two_wheeler": {
         "model": TwoWheelerModel,
         "inventory": InventoryTwoWheeler,
         "input_parameters": TwoWheelerInputParameters,
-        "version": carculator_two_wheeler_version,
-        "ecoinvent version": "3.10"
+        "version": str(carculator_two_wheeler_version),
+        "ecoinvent version": "3.10.0"
     }
 }
 
