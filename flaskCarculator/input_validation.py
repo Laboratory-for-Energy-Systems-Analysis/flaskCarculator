@@ -42,6 +42,7 @@ def validate_input_data(data: dict) -> list:
     list_parameters = [
         "id",
         "vehicle_type",
+        "cycle",
         "lifetime kilometers",
         "kilometers per year",
         "TtW energy",
@@ -54,6 +55,7 @@ def validate_input_data(data: dict) -> list:
         "year",
         "battery technology",
         "electric energy stored",
+        "target_range",
     ]
 
     errors = []

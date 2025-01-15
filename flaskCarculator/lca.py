@@ -173,6 +173,16 @@ def initialize_model(params, country="CH"):
             (params["powertrain"], params["size"], params["year"]): params["payload"]
         }
 
+    target_range = None
+    if params.get("target_range", 0) > 0:
+        target_range = {
+            (params["powertrain"], params["size"], params["year"]): params["target_range"]
+        }
+
+    cycle = None
+    if params.get("cycle", None):
+        cycle = params["cycle"]
+
     m = model(
         array,
         country=country,
@@ -181,7 +191,9 @@ def initialize_model(params, country="CH"):
         power=power,
         target_mass=target_mass,
         energy_consumption=energy_consumption,
-        drop_hybrids=False
+        drop_hybrids=False,
+        payload=payload,
+        target_range=target_range
     )
 
     m = set_vehicle_properties_before_run(m, params)
