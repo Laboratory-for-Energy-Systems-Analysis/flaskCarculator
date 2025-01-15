@@ -69,3 +69,22 @@ def format_results_for_tcs(data: xr.DataArray) -> dict:
         ).sum().item()
 
     return results
+
+def format_results_for_swisscargo(data: xr.DataArray) -> list:
+    """
+    Format the results for SwissCargo.
+    """
+
+    results = []
+
+    for impact_category in data.results.coords["impact_category"].values:
+        result = {"category": impact_category}
+        result.update(
+            {
+                i: data.results.sel(impact_category=impact_category, impact=i).sum().item()
+                for i in data.results.coords["impact"].values
+            }
+        )
+        results.append(result)
+
+    return results

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from .input_validation import validate_input
 from .lca import initialize_model
-from .formatting import format_results_for_tcs
+from .formatting import format_results_for_tcs, format_results_for_swisscargo
 
 main = Blueprint('main', __name__)
 
@@ -24,6 +24,10 @@ def calculate_lca():
     for vehicle in data["vehicles"]:
         if data.get("nomenclature") == "tcs":
             vehicle["results"] = format_results_for_tcs(
+                data=models[vehicle["id"]],
+            )
+        elif data.get("nomenclature") == "swiss-cargo":
+            vehicle["results"] = format_results_for_swisscargo(
                 data=models[vehicle["id"]],
             )
         else:
