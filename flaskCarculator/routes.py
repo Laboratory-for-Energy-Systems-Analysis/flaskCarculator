@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, after_this_request
+from flask import Blueprint, request, jsonify, after_this_request, Response
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
