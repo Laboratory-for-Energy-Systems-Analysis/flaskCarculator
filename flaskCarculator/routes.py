@@ -3,6 +3,7 @@ from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
 import gc
+from app import app
 
 main = Blueprint('main', __name__)
 
