@@ -30,7 +30,7 @@ def calculate_lca():
                     data=models[vehicle["id"]],
                 )
             elif data.get("nomenclature") == "swiss-cargo":
-                vehicle["_results"] = format_results_for_swisscargo(
+                vehicle["~results"] = format_results_for_swisscargo(
                     data=models[vehicle["id"]],
                 )
             else:
