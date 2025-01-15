@@ -30,7 +30,7 @@ def calculate_lca():
                     data=models[vehicle["id"]],
                 )
             elif data.get("nomenclature") == "swiss-cargo":
-                vehicle["z"] = format_results_for_swisscargo(
+                vehicle["-results"] = format_results_for_swisscargo(
                     data=models[vehicle["id"]],
                 )
             else:
@@ -39,16 +39,13 @@ def calculate_lca():
             default_vehicle_parameters = [
                 "lifetime kilometers",
                 "kilometers per year",
-
                 "curb mass",
                 "cargo mass",
                 "total cargo mass",
                 "capacity utilization",
                 "driving mass",
-
                 "power",
                 "electric power",
-
                 "TtW energy",
                 "TtW energy, combustion mode",
                 "TtW energy, electric mode",
@@ -58,14 +55,12 @@ def calculate_lca():
                 "electric utility factor",
                 "range",
                 "target range",
-
                 "battery technology",
                 "electric energy stored",
                 "battery lifetime kilometers",
                 "battery cell energy density",
                 "battery cycle life",
                 "oxidation energy stored",
-
             ]
 
             for p in default_vehicle_parameters:
