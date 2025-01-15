@@ -43,7 +43,7 @@ def validate_input_data(data: dict) -> list:
         "id",
         "vehicle_type",
         "lifetime kilometers",
-        "annual mileage",
+        "kilometers per year",
         "TtW energy",
         "payload",
         "electric utility factor",
