@@ -10,6 +10,7 @@ def create_app():
     # App configurations
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_TYPE'] = None  # Disable session entirely
+    app.config['JSON_SORT_KEYS'] = False
 
     # Memory cleanup
     import gc
