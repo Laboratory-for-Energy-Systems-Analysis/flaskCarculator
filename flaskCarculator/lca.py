@@ -1,8 +1,12 @@
 import numpy as np
 from carculator import CarInputParameters, CarModel, fill_xarray_from_input_parameters, InventoryCar
+import carculator.__version__ as carculator_version
 from carculator_truck import TruckInputParameters, TruckModel, InventoryTruck
+import carculator_truck.__version__ as carculator_truck_version
 from carculator_bus import BusInputParameters, BusModel, InventoryBus
+import carculator_bus.__version__ as carculator_bus_version
 from carculator_two_wheeler import TwoWheelerInputParameters, TwoWheelerModel, InventoryTwoWheeler
+import carculator_two_wheeler.__version__ as carculator_two_wheeler_version
 
 from .data.mapping import FUEL_SPECS
 from .output_validation import validate_output_data
@@ -12,22 +16,30 @@ models = {
     "car": {
         "model": CarModel,
         "inventory": InventoryCar,
-        "input_parameters": CarInputParameters
+        "input_parameters": CarInputParameters,
+        "version": carculator_version,
+        "ecoinvent version": "3.10"
     },
     "truck": {
         "model": TruckModel,
         "inventory": InventoryTruck,
-        "input_parameters": TruckInputParameters
+        "input_parameters": TruckInputParameters,
+        "version": carculator_truck_version,
+        "ecoinvent version": "3.10"
     },
     "bus": {
         "model": BusModel,
         "inventory": InventoryBus,
-        "input_parameters": BusInputParameters
+        "input_parameters": BusInputParameters,
+        "version": carculator_bus_version,
+        "ecoinvent version": "3.10"
     },
     "two_wheeler": {
         "model": TwoWheelerModel,
         "inventory": InventoryTwoWheeler,
-        "input_parameters": TwoWheelerInputParameters
+        "input_parameters": TwoWheelerInputParameters,
+        "version": carculator_two_wheeler_version,
+        "ecoinvent version": "3.10"
     }
 }
 
@@ -214,8 +226,11 @@ def initialize_model(params, country="CH"):
         raise ValueError(f"Validation failed: {errors}")
 
     inventory = models[params["vehicle_type"]]["inventory"]
-    inventory = inventory(m)
-    results = inventory.calculate_impacts()
+    m.inventory = inventory(m)
+    results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
+
+    m.version = models[params["vehicle_type"]]["version"]
+    m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
 
     return m

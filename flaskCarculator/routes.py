@@ -69,6 +69,16 @@ def calculate_lca():
             if p in models[vehicle["id"]].array.parameter.values:
                 vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
 
+        vehicle["indicators"] = models[vehicle["id"]].inventory.indicator
+        vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
+        vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
+        vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
+        vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
+        vehicle["carculator version"] = models[vehicle["id"]].inventory.scenario
+        vehicle["carculator version"] = models[vehicle["id"]].version
+        vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
+
+
     return jsonify(data), 200
 
 def serialize_xarray(data):
