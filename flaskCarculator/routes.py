@@ -33,6 +33,42 @@ def calculate_lca():
         else:
             vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
 
+        default_vehicle_parameters = [
+            "lifetime kilometers",
+            "kilometers per year",
+
+            "curb mass",
+            "cargo mass",
+            "total cargo mass",
+            "capacity utilization",
+            "driving mass",
+
+            "power",
+            "electric power",
+
+            "TtW energy",
+            "TtW energy, combustion mode",
+            "TtW energy, electric mode",
+            "TtW efficiency",
+            "fuel consumption",
+            "electricity consumption",
+            "electric utility factor",
+            "range",
+            "target range",
+
+            "battery technology",
+            "electric energy stored",
+            "battery lifetime kilometers",
+            "battery cell energy density",
+            "battery cycle life",
+            "oxidation energy stored",
+
+        ]
+
+        for p in default_vehicle_parameters:
+            if p in models[vehicle["id"]].array.parameter.values:
+                vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
+
     return jsonify(data), 200
 
 def serialize_xarray(data):
