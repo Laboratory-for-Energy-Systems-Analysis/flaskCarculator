@@ -1,6 +1,6 @@
 import numpy as np
 from carculator import CarInputParameters, CarModel, fill_xarray_from_input_parameters, InventoryCar
-import carculator.__version__ as carculator_version
+from carculator import __version__ as carculator_version
 from carculator_truck import TruckInputParameters, TruckModel, InventoryTruck
 import carculator_truck.__version__ as carculator_truck_version
 from carculator_bus import BusInputParameters, BusModel, InventoryBus
