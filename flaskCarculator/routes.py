@@ -95,7 +95,19 @@ def calculate_lca():
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
-    return jsonify(data), 200
+    # Custom JSON serialization to ensure key order
+    def custom_json_encoder(obj):
+        if isinstance(obj, dict):
+            # Ensure "results" key is the last key
+            if "results" in obj:
+                reordered = {k: v for k, v in obj.items() if k != "results"}
+                reordered["results"] = obj["results"]
+                return reordered
+        return obj
+
+    # Use the custom encoder for the response
+    response_data = json.dumps(data, default=custom_json_encoder)
+    return Response(response_data, status=200, mimetype='application/json')
 
 def serialize_xarray(data):
     """
