@@ -3,6 +3,7 @@ from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
 import json
+from collections import OrderedDict
 
 main = Blueprint('main', __name__)
 
@@ -79,10 +80,13 @@ def calculate_lca():
             vehicle["carculator version"] = models[vehicle["id"]].version
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
-            # Move "results" key to the end of the dictionary
+            # Rebuild the vehicle dictionary as an OrderedDict with "results" last
             results = vehicle.pop("results", None)
+            ordered_vehicle = OrderedDict(vehicle)
             if results is not None:
-                vehicle["results"] = results
+                ordered_vehicle["results"] = results
+            vehicle.clear()
+            vehicle.update(ordered_vehicle)
 
 
         # Clean up memory after the response is sent
@@ -96,19 +100,11 @@ def calculate_lca():
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
-    # Custom JSON serialization to ensure key order
-    def custom_json_encoder(obj):
-        if isinstance(obj, dict):
-            # Ensure "results" key is the last key
-            if "results" in obj:
-                reordered = {k: v for k, v in obj.items() if k != "results"}
-                reordered["results"] = obj["results"]
-                return reordered
-        return obj
-
-    # Use the custom encoder for the response
-    response_data = json.dumps(data, default=custom_json_encoder)
-    return Response(response_data, status=200, mimetype='application/json')
+    return Response(
+        json.dumps(data, indent=2),  # Serialize using the ordered structure
+        status=200,
+        mimetype='application/json'
+    )
 
 def serialize_xarray(data):
     """
