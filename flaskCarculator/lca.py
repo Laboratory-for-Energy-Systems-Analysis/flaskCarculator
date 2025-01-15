@@ -2,11 +2,11 @@ import numpy as np
 from carculator import CarInputParameters, CarModel, fill_xarray_from_input_parameters, InventoryCar
 from carculator import __version__ as carculator_version
 from carculator_truck import TruckInputParameters, TruckModel, InventoryTruck
-import carculator_truck.__version__ as carculator_truck_version
+from carculator_truck import __version__ as carculator_truck_version
 from carculator_bus import BusInputParameters, BusModel, InventoryBus
-import carculator_bus.__version__ as carculator_bus_version
+from carculator_bus import __version__ as carculator_bus_version
 from carculator_two_wheeler import TwoWheelerInputParameters, TwoWheelerModel, InventoryTwoWheeler
-import carculator_two_wheeler.__version__ as carculator_two_wheeler_version
+from carculator_two_wheeler import __version__ as carculator_two_wheeler_version
 
 from .data.mapping import FUEL_SPECS
 from .output_validation import validate_output_data
