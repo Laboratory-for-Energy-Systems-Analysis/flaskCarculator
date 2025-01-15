@@ -78,8 +78,11 @@ def calculate_lca():
             vehicle["carculator version"] = models[vehicle["id"]].version
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
-            # we want "results" to be the last key in the dictionary
-            vehicle.move_to_end("results")
+            # Move "results" key to the end of the dictionary
+            results = vehicle.pop("results", None)
+            if results is not None:
+                vehicle["results"] = results
+
 
         # Clean up memory after the response is sent
         @after_this_request
