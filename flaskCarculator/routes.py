@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, after_this_request
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
+import gc
 
 main = Blueprint('main', __name__)
 
@@ -21,63 +22,74 @@ def calculate_lca():
 
     models = {vehicle["id"]: initialize_model(vehicle) for vehicle in data["vehicles"]}
 
-    for vehicle in data["vehicles"]:
-        if data.get("nomenclature") == "tcs":
-            vehicle["results"] = format_results_for_tcs(
-                data=models[vehicle["id"]],
-            )
-        elif data.get("nomenclature") == "swiss-cargo":
-            vehicle["results"] = format_results_for_swisscargo(
-                data=models[vehicle["id"]],
-            )
-        else:
-            vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
+    try:
+        for vehicle in data["vehicles"]:
+            if data.get("nomenclature") == "tcs":
+                vehicle["results"] = format_results_for_tcs(
+                    data=models[vehicle["id"]],
+                )
+            elif data.get("nomenclature") == "swiss-cargo":
+                vehicle["results"] = format_results_for_swisscargo(
+                    data=models[vehicle["id"]],
+                )
+            else:
+                vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
 
-        default_vehicle_parameters = [
-            "lifetime kilometers",
-            "kilometers per year",
+            default_vehicle_parameters = [
+                "lifetime kilometers",
+                "kilometers per year",
 
-            "curb mass",
-            "cargo mass",
-            "total cargo mass",
-            "capacity utilization",
-            "driving mass",
+                "curb mass",
+                "cargo mass",
+                "total cargo mass",
+                "capacity utilization",
+                "driving mass",
 
-            "power",
-            "electric power",
+                "power",
+                "electric power",
 
-            "TtW energy",
-            "TtW energy, combustion mode",
-            "TtW energy, electric mode",
-            "TtW efficiency",
-            "fuel consumption",
-            "electricity consumption",
-            "electric utility factor",
-            "range",
-            "target range",
+                "TtW energy",
+                "TtW energy, combustion mode",
+                "TtW energy, electric mode",
+                "TtW efficiency",
+                "fuel consumption",
+                "electricity consumption",
+                "electric utility factor",
+                "range",
+                "target range",
 
-            "battery technology",
-            "electric energy stored",
-            "battery lifetime kilometers",
-            "battery cell energy density",
-            "battery cycle life",
-            "oxidation energy stored",
+                "battery technology",
+                "electric energy stored",
+                "battery lifetime kilometers",
+                "battery cell energy density",
+                "battery cycle life",
+                "oxidation energy stored",
 
-        ]
+            ]
 
-        for p in default_vehicle_parameters:
-            if p in models[vehicle["id"]].array.parameter.values:
-                vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
+            for p in default_vehicle_parameters:
+                if p in models[vehicle["id"]].array.parameter.values:
+                    vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
 
-        vehicle["indicators"] = models[vehicle["id"]].inventory.method
-        vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
-        vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-        vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
-        vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-        vehicle["carculator version"] = models[vehicle["id"]].inventory.scenario
-        vehicle["carculator version"] = models[vehicle["id"]].version
-        vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
+            vehicle["indicators"] = models[vehicle["id"]].inventory.method
+            vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
+            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
+            vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
+            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
+            vehicle["carculator version"] = models[vehicle["id"]].inventory.scenario
+            vehicle["carculator version"] = models[vehicle["id"]].version
+            vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
+        # Clean up memory after the response is sent
+        @after_this_request
+        def cleanup(response):
+            nonlocal models
+            models.clear()  # Clear the dictionary to release memory
+            del models  # Explicitly delete the variable
+            return response
+
+    except Exception as e:
+        return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
     return jsonify(data), 200
 
@@ -88,3 +100,8 @@ def serialize_xarray(data):
     :return: dict
     """
     return data.to_dict()
+
+@app.after_request
+def free_memory(response):
+    gc.collect()
+    return response
