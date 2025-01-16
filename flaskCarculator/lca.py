@@ -233,7 +233,8 @@ def initialize_model(params):
                 * 3600
                 / m["TtW energy, electric mode"]
         )
-        m.set_vehicle_mass()
+        m.set_vehicle_masses()
+        m.calculate_ttw_energy()
 
     errors = validate_output_data(data=m, request=params)
 
