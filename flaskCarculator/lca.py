@@ -221,21 +221,17 @@ def initialize_model(params):
         m.drop_hybrid()
 
     if params.get("electric energy stored", 0) > 0:
-        m.array.loc[dict(parameter="electric energy stored")] = params["electric energy stored"]
-
-        m.array["battery cell mass"] = m.array["electric energy stored"] / m.array["battery cell energy density"]
-
-        m.array["energy battery mass"] = m.array["battery cell mass"] / ["battery cell mass share"]
-
-        m.array["battery BoP mass"] = (
-                m.array["energy battery mass"] - m.array["battery cell mass"]
+        m["electric energy stored"] = params["electric energy stored"]
+        m["battery cell mass"] = m["electric energy stored"] / m["battery cell energy density"]
+        m["energy battery mass"] = m["battery cell mass"] / m["battery cell mass share"]
+        m["battery BoP mass"] = (
+                m["energy battery mass"] - m["battery cell mass"]
         )
-
         var = "target range" if "target range" in m.array.parameter.values else "range"
-        m.array[var] = (
-                m.array["electric energy stored"]
+        m[var] = (
+                m["electric energy stored"]
                 * 3600
-                / m.array["TtW energy, electric mode"]
+                / m["TtW energy, electric mode"]
         )
 
     errors = validate_output_data(data=m, request=params)
