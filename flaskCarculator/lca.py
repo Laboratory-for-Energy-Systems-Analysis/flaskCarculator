@@ -220,6 +220,9 @@ def initialize_model(params):
     if params["vehicle_type"] == "car":
         m.drop_hybrid()
 
+    if params.get("electric energy stored", 0) > 0:
+        m.array.loc[dict(parameter="electric energy stored")] = params["electric energy stored"]
+
     errors = validate_output_data(data=m, request=params)
 
     if errors:
