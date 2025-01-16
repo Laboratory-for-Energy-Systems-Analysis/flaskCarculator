@@ -7,5 +7,6 @@ battery:
   - LFP
   - NCA
   - LTO
-  - LiO2
-  - LiS
+  - Li-O2
+  - Li-S
+  - SiB

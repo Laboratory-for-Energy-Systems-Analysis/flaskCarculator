@@ -17,6 +17,9 @@ from .data.mapping import (
     BUS_POWERTRAINS,
     BUS_SIZES,
     BUS_BATTERIES,
+    TWO_WHEELER_POWERTRAINS,
+    TWO_WHEELER_SIZES,
+    TWO_WHEELER_BATTERIES,
 )
 
 
@@ -41,6 +44,11 @@ def get_mapping(vehicle_type: str) -> dict:
             "powertrain": BUS_POWERTRAINS["powertrain"],
             "size": BUS_SIZES["size"],
             "battery": BUS_BATTERIES["battery"],
+        },
+        "two-wheeler": {
+            "powertrain": TWO_WHEELER_POWERTRAINS["powertrain"],
+            "size": TWO_WHEELER_SIZES["size"],
+            "battery": TWO_WHEELER_BATTERIES["battery"],
         },
     }
 

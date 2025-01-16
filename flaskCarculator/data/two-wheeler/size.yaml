@@ -1,0 +1,11 @@
+size:
+  - Kick-scooter
+  - Bicycle <25
+  - Bicycle cargo
+  - Bicycle <45
+  - Moped <4kW
+  - Scooter <4kW
+  - Scooter 4-11kW
+  - Motorcycle 4-11kW
+  - Motorcycle 11-35kW
+  - Motorcycle >35kW
