@@ -155,11 +155,11 @@ def validate_input_data(data: dict) -> list:
                 f"Vehicle {v} has invalid battery type value: {vehicle['battery technology']}. Should be one of {vehicle_mapping['battery']}"
             )
 
-        # Check if 'battery capacity' is a valid number
-        if "battery capacity" in vehicle and not isinstance(vehicle["battery capacity"], (int, float)):
-            errors.append(f"Vehicle {v} has invalid battery capacity value: {vehicle['battery capacity']} (must be a number)")
-        elif "battery capacity" in vehicle and vehicle["battery capacity"] <= 0:
-            errors.append(f"Vehicle {v}: battery capacity must be greater than 0.")
+        # Check if 'electric energy stored' is a valid number
+        if "electric energy stored" in vehicle and not isinstance(vehicle["electric energy stored"], (int, float)):
+            errors.append(f"Vehicle {v} has invalid battery capacity value: {vehicle['electric energy stored']} (must be a number)")
+        elif "electric energy stored" in vehicle and vehicle["electric energy stored"] <= 0:
+            errors.append(f"Vehicle {v}: electric energy stored must be greater than 0.")
 
         # Check if 'range' is a valid number
         if "range" in vehicle and not isinstance(vehicle["range"], (int, float)):

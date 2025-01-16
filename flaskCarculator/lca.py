@@ -139,6 +139,12 @@ def initialize_model(params):
 
     model = models[params["vehicle_type"]]["model"]
 
+    if params.get("lifetime kilometers", None):
+        array.loc[dict(parameter="lifetime kilometers")] = params["lifetime kilometers"]
+
+    if params.get("annual mileage", None):
+        array.loc[dict(parameter="annual mileage")] = params["annual mileage"]
+
     energy_storage = None
     if params.get("electric energy stored", 0) > 0:
         energy_storage = {
@@ -146,12 +152,6 @@ def initialize_model(params):
                 (params["powertrain"], params["size"], params["year"]): params["electric energy stored"]
             },
         }
-
-    if params.get("lifetime kilometers", None):
-        array.loc[dict(parameter="lifetime kilometers")] = params["lifetime kilometers"]
-
-    if params.get("annual mileage", None):
-        array.loc[dict(parameter="annual mileage")] = params["annual mileage"]
 
     if params.get("battery technology", None):
         if energy_storage is None:
