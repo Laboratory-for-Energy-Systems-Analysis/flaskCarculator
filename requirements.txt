@@ -1,6 +1,6 @@
 Flask
-carculator
-carculator_truck
-carculator_bus
-carculator_two_wheeler
+git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator.git
+git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_truck.git
+git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_bus.git
+git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_two_wheeler.git
 gunicorn
