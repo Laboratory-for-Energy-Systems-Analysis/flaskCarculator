@@ -198,7 +198,7 @@ def initialize_model(params, country="CH"):
     m = model(
         array,
         country=country,
-        cycle='WLTC',
+        cycle=cycle,
         energy_storage=energy_storage,
         power=power,
         target_mass=target_mass,
