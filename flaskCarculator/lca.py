@@ -248,6 +248,7 @@ def initialize_model(params, country="CH"):
         method=method,
         indicator=indicator,
         scenario=scenario,
+        functional_unit=func_unit
     )
     results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
