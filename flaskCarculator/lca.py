@@ -237,7 +237,7 @@ def initialize_model(params, country="CH"):
 
     method = "recipe"
     if "method" in params:
-        method = params["indicators"]
+        method = params["method"]
 
     indicator = "midpoint"
     if "indicator" in params:
