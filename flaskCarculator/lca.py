@@ -142,8 +142,10 @@ def initialize_model(params):
     if params.get("lifetime kilometers", None):
         array.loc[dict(parameter="lifetime kilometers")] = params["lifetime kilometers"]
 
-    if params.get("annual mileage", None):
-        array.loc[dict(parameter="annual mileage")] = params["annual mileage"]
+    annual_mileage = None
+    if params.get("kilometers per year", None):
+        array.loc[dict(parameter="kilometers per year")] = params["kilometers per year"]
+        annual_mileage = params["kilometers per year"]
 
     energy_storage = None
     if params.get("electric energy stored", 0) > 0:
@@ -205,7 +207,8 @@ def initialize_model(params):
         energy_consumption=energy_consumption,
         drop_hybrids=False,
         payload=payload,
-        target_range=target_range
+        target_range=target_range,
+        annual_mileage=annual_mileage
     )
 
     m = set_vehicle_properties_before_run(m, params)
