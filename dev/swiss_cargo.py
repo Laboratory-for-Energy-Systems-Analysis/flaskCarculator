@@ -21,6 +21,7 @@ data = {
     ],
 }
 
+
 # Send the POST request
 response = requests.post(url, json=data)
 
