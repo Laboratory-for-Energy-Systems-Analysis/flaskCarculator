@@ -80,6 +80,11 @@ def validate_input_data(data: dict) -> list:
         "battery technology",
         "electric energy stored",
         "target_range",
+        "country",
+        "func_unit",
+        "scenario",
+        "method",
+        "indicator"
     ]
 
     errors = []
