@@ -1,0 +1,23 @@
+Solo LKW <=7.5t: 3.5t
+Solo LKW >7,5-<=12t: 7.5t
+Solo LKW 12-14t: 18t
+Solo LKW 14-20t: 18t
+Solo LKW 20-26t: 26t
+Solo LKW 26-28t: 26t
+Solo LKW 28-32t: 26t
+Solo LKW >32t: 26t
+TT/AT >14-20t: 26t
+TT/AT >20-28t: 32t
+TT/AT >28-34t: 32t
+TT/AT >34-40t: 40t
+TT/AT >40-50t: 40t
+TT/AT >50-60t: 60t
+TT/AT >60-64t: 60t
+TT/AT >64-74t: 60t
+TT/AT >74t: 60t
+Ubus Midi <=15t: 9m
+Ubus Std >15-18t: 13m-city
+Ubus Artic >18t: 18m
+Coach Midi <=15t: 9m
+Coach Std <=18t: 13m-coach
+Coach 3-Axes >18t: 13m-coach-double

@@ -2,8 +2,22 @@
 This module contains functions to validate the input data.
 """
 
-from .data.mapping import TCS_SIZE, TCS_PARAMETERS, TCS_POWERTRAIN, CAR_POWERTRAINS, CAR_SIZES, \
-    CAR_BATTERIES, FUEL_SPECS
+from .data.mapping import (
+    TCS_SIZE,
+    TCS_PARAMETERS,
+    TCS_POWERTRAIN,
+    SWISSCARGO_SIZE,
+    FUEL_SPECS,
+    CAR_POWERTRAINS,
+    CAR_SIZES,
+    CAR_BATTERIES,
+    TRUCK_POWERTRAINS,
+    TRUCK_SIZES,
+    TRUCK_BATTERIES,
+    BUS_POWERTRAINS,
+    BUS_SIZES,
+    BUS_BATTERIES,
+)
 
 
 def get_mapping(vehicle_type: str) -> dict:
@@ -17,6 +31,16 @@ def get_mapping(vehicle_type: str) -> dict:
             "powertrain": CAR_POWERTRAINS["powertrain"],
             "size": CAR_SIZES["size"],
             "battery": CAR_BATTERIES["battery"],
+        },
+        "truck": {
+            "powertrain": TRUCK_POWERTRAINS["powertrain"],
+            "size": TRUCK_SIZES["size"],
+            "battery": TRUCK_BATTERIES["battery"],
+        },
+        "bus": {
+            "powertrain": BUS_POWERTRAINS["powertrain"],
+            "size": BUS_SIZES["size"],
+            "battery": BUS_BATTERIES["battery"],
         },
     }
 
@@ -138,6 +162,21 @@ def validate_input_data(data: dict) -> list:
 
     return errors
 
+def translate_swisscargo_to_carculator(data: dict) -> dict:
+    """
+    Translates the SwissCargo nomenclature to the Carculator nomenclature.
+    :param data: data to translate
+    :return: translated data
+    """
+
+    for vehicle in data["vehicles"]:
+        if "size" in vehicle:
+            if vehicle["size"] in SWISSCARGO_SIZE:
+                vehicle["size"] = SWISSCARGO_SIZE[vehicle["size"]]
+
+    return data
+
+
 
 def translate_tcs_to_carculator(data: dict) -> dict:
     """
@@ -216,6 +255,9 @@ def validate_input(data: dict) -> [list, list]:
 
     if data.get("nomenclature") == "tcs":
         data = translate_tcs_to_carculator(data)
+
+    if data.get("nomenclature") == "swisscargo":
+        data = translate_swisscargo_to_carculator(data)
 
     errors = validate_input_data(data)
 

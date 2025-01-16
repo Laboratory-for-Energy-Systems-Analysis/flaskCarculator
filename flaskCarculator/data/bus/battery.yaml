@@ -6,5 +6,6 @@ battery:
   - NMC-955
   - LFP
   - NCA
+  - LTO
   - LiO2
   - LiS
