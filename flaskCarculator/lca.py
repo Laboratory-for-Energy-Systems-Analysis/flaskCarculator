@@ -145,7 +145,9 @@ def initialize_model(params):
     annual_mileage = None
     if params.get("kilometers per year", None):
         array.loc[dict(parameter="kilometers per year")] = params["kilometers per year"]
-        annual_mileage = params["kilometers per year"]
+        annual_mileage = {
+            (params["powertrain"], params["size"], params["year"]): params["kilometers per year"]
+        }
 
     energy_storage = None
     if params.get("electric energy stored", 0) > 0:
