@@ -8,7 +8,7 @@ url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
 
 # Create the data payload to send to the server
 data = {
-    "nomenclature": "swiss-cargo",
+    "nomenclature": "swisscargo",
     "country_code": "CH",
     "vehicles": [
          {
