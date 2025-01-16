@@ -13,13 +13,15 @@ data = {
     "vehicles": [
          {
              "id": "ICEV001",
-             "vehicle_type": "car",
+             "vehicle_type": "truck",
              "year": 2020,
-             "size": "Medium",
-             "powertrain": "ICEV-d",
+             "size": "32t",
+             "powertrain": "BEV",
+             "battery technology": "Li-S"
         }
     ],
 }
+
 
 # Send the POST request
 response = requests.post(url, json=data)
