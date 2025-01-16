@@ -120,7 +120,7 @@ def set_properties_for_plugin(model, params):
 
     return model
 
-def initialize_model(params, country="CH"):
+def initialize_model(params):
     """
     Initializes and returns a CarModel instance with the given parameters.
     """
@@ -197,7 +197,7 @@ def initialize_model(params, country="CH"):
 
     m = model(
         array,
-        country=country,
+        country=params.get("country", "CH"),
         cycle=cycle,
         energy_storage=energy_storage,
         power=power,
