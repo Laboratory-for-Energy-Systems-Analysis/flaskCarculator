@@ -226,7 +226,29 @@ def initialize_model(params, country="CH"):
         raise ValueError(f"Validation failed: {errors}")
 
     inventory = models[params["vehicle_type"]]["inventory"]
-    m.inventory = inventory(m)
+
+    func_unit = "vkm"
+    if "func_unit" in params:
+        func_unit = params["func_unit"]
+
+    scenario = "static"
+    if "scenario" in params:
+        scenario = params["scenario"]
+
+    method = "recipe"
+    if "method" in params:
+        method = params["indicators"]
+
+    indicator = "midpoint"
+    if "indicator" in params:
+        indicator = params["indicator"]
+
+    m.inventory = inventory(
+        m,
+        method=method,
+        indicator=indicator,
+        scenario=scenario,
+    )
     results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
 

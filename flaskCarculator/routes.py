@@ -60,6 +60,9 @@ def calculate_lca():
                 "battery lifetime kilometers",
                 "battery cell energy density",
                 "battery cycle life",
+                "battery lifetime replacements",
+                "fuel cell system efficiency",
+                "fuel cell lifetime replacements",
                 "oxidation energy stored",
             ]
 
@@ -67,12 +70,13 @@ def calculate_lca():
                 if p in models[vehicle["id"]].array.parameter.values:
                     vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
 
+            vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
             vehicle["indicators"] = models[vehicle["id"]].inventory.method
             vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
             vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
             vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
             vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["carculator version"] = ".".join(map(str, models[vehicle["id"]].version))
+            vehicle["carculator version"] = str(models[vehicle["id"]].version).replace("(", "").replace(")", "")
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
 
         # Clean up memory after the response is sent
