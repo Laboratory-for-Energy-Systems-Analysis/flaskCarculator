@@ -28,6 +28,7 @@ def calculate_lca():
             if data.get("nomenclature") == "tcs":
                 vehicle["results"] = format_results_for_tcs(
                     data=models[vehicle["id"]],
+                    params=vehicle
                 )
             elif data.get("nomenclature") == "swisscargo":
                 vehicle["results"] = format_results_for_swisscargo(

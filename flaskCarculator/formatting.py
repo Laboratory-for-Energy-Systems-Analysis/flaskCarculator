@@ -1,7 +1,7 @@
 from flaskCarculator.data.mapping import TCS_IMPACTS_MAPPING, BAFU_EMISSSION_FACTORS
 import xarray as xr
 
-def format_results_for_tcs(data: xr.DataArray) -> dict:
+def format_results_for_tcs(data: xr.DataArray, params: dict) -> dict:
     """
     Format the results for TCS.
     """
@@ -61,6 +61,9 @@ def format_results_for_tcs(data: xr.DataArray) -> dict:
 
     # climate change results need to be in grams CO2-eq., not kg
     data.results.loc[dict(impact_category="climate change")] *= 1000
+
+    if "energie_co2" in params:
+        data.results.loc[dict(impact_category="climate change", impact="energy chain")] = params["energie_co2"]
 
     for field, subfield in TCS_IMPACTS_MAPPING.items():
         results[field] = data.results.sel(
