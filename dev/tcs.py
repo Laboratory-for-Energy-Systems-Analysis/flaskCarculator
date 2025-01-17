@@ -3,8 +3,8 @@ import xarray as xr
 from pprint import pprint
 
 # Define the URL for the Flask endpoint
-# url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
-url = "http://127.0.0.1:5000/calculate-lca"
+url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
+#url = "http://127.0.0.1:5000/calculate-lca"
 
 # Create the data payload to send to the server
 data = {
@@ -26,7 +26,8 @@ data = {
              "ver_abs": 7.8,
              "ver": 7.8,
              "bat_km_tcs": 650,
-             "bat_km_WLTP": 0
+             "bat_km_WLTP": 0,
+             "direct_co2": 120
         },
         {
              "id": "ICEV002",
@@ -43,7 +44,8 @@ data = {
              "ver_abs": 7.8,
              "ver": 7.8,
              "bat_km_tcs": 650,
-             "bat_km_WLTP": 0
+             "bat_km_WLTP": 0,
+            "direct_co2": 1800
         },
 {
              "id": "ICEV003",
@@ -60,7 +62,8 @@ data = {
              "ver_abs": 7.8,
              "ver": 7.8,
              "bat_km_tcs": 650,
-             "bat_km_WLTP": 0
+             "bat_km_WLTP": 0,
+             "direct_co2": 200
         },
 {
              "id": "ICEV004",
@@ -77,7 +80,8 @@ data = {
              "ver_abs": 7.8,
              "ver": 7.8,
              "bat_km_tcs": 650,
-             "bat_km_WLTP": 0
+             "bat_km_WLTP": 0,
+             "direct_co2": 300
         },
         {
             "id": "BEV001",
@@ -97,6 +101,7 @@ data = {
             "bat_typ": "LFP",
             "bat_km_WLTP": 513,
             "ver_strom": 13,
+            "direct_co2": 0
         },
         # {
         #     "id": "PHEV001",
