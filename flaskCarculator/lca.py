@@ -195,6 +195,7 @@ def initialize_model(params):
             (params["powertrain"], params["size"], params["year"]): params["target_range"]
         }
 
+
     cycle = None
     if params.get("cycle", None):
         cycle = params["cycle"]
