@@ -60,7 +60,7 @@ data = {
              "direct_co2": 200
         },
 {
-             "id": "ICEV004",
+             "id": "FCEV004",
              "vehicle_type": "car",
              "tsa": "Z",
              "year": 2020,
