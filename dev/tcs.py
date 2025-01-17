@@ -23,9 +23,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver_abs": 7.8,
              "ver": 7.8,
-             "bat_km_tcs": 650,
              "bat_km_WLTP": 0,
              "direct_co2": 120
         },
@@ -41,9 +39,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver_abs": 7.8,
              "ver": 7.8,
-             "bat_km_tcs": 650,
              "bat_km_WLTP": 0,
             "direct_co2": 1800
         },
@@ -59,9 +55,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver_abs": 7.8,
              "ver": 7.8,
-             "bat_km_tcs": 650,
              "bat_km_WLTP": 0,
              "direct_co2": 200
         },
@@ -77,9 +71,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver_abs": 7.8,
              "ver": 7.8,
-             "bat_km_tcs": 650,
              "bat_km_WLTP": 0,
              "direct_co2": 300
         },
@@ -96,7 +88,6 @@ data = {
             "kw_sl": 208,
             "tank": 0,
             #"ver_abs": 15.5,
-            "bat_km_tcs": 400,
             "bat_cap": 75,
             "bat_typ": "LFP",
             "bat_km_WLTP": 513,

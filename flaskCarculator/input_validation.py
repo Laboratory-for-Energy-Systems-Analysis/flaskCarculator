@@ -99,7 +99,6 @@ def validate_input_data(data: dict) -> list:
         # TCS nomenclature
         "fuel consumption",
         "electricity consumption",
-        "battery range",
         "fuel tank volume",
         "primary power",
         "direct_co2"
@@ -234,18 +233,6 @@ def translate_tcs_to_carculator(data: dict) -> dict:
         if "ver_strom" in vehicle:
             new_vehicle["electricity consumption"] = vehicle["ver_strom"]
             new_vehicle["TtW energy"] += int(new_vehicle["electricity consumption"] * 3.6 * 1000 / 100)
-
-        if not any(x in vehicle for x in ["ver", "ver_strom"]):
-            if "ver_abs" in vehicle:
-                if new_vehicle["powertrain"] == "BEV":
-                    new_vehicle["electricity consumption"] = vehicle["ver_abs"]
-                else:
-                    new_vehicle["fuel consumption"] = vehicle["ver_abs"]
-
-                if new_vehicle["powertrain"] == "BEV":
-                    new_vehicle["TtW energy"] = int(new_vehicle["fuel consumption"] * 3.6 * 1000 / 100)
-                else:
-                    new_vehicle["TtW energy"] = int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
 
         # add other entries not in the mapping
         for k, v in vehicle.items():
