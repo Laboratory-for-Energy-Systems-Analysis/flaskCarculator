@@ -43,6 +43,7 @@ def calculate_lca():
                 "curb mass",
                 "cargo mass",
                 "total cargo mass",
+                "average passengers",
                 "capacity utilization",
                 "driving mass",
                 "power",

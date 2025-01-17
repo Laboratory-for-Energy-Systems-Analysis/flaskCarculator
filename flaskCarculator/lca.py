@@ -195,6 +195,9 @@ def initialize_model(params):
             (params["powertrain"], params["size"], params["year"]): params["target_range"]
         }
 
+    if "average passengers" in params:
+        array.loc[dict(parameter="average passengers")] = params["average passengers"]
+
     # build fuel blends
     fuel_blends = {}
     for fuel in [

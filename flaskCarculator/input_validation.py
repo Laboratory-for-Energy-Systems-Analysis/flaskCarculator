@@ -101,6 +101,7 @@ def validate_input_data(data: dict) -> list:
         "methane",
         "hydrogen",
         "electricity",
+        "average passengers",
         # TCS nomenclature
         "fuel consumption",
         "electricity consumption",
