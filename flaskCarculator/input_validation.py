@@ -81,12 +81,7 @@ def validate_input_data(data: dict) -> list:
         "payload",
         "cargo mass",
         "driving mass",
-        "primary power",
-        "fuel tank volume",
-        "battery range",
         "range",
-        "fuel consumption",
-        "tsa",
         "electric utility factor",
         "power",
         "curb mass",
@@ -101,6 +96,13 @@ def validate_input_data(data: dict) -> list:
         "scenario",
         "method",
         "indicator"
+        # TCS nomenclature
+        "fuel consumption",
+        "electricity consumption",
+        "battery range",
+        "fuel tank volume",
+        "primary power",
+        "direct_co2"
     ]
 
     errors = []
