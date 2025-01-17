@@ -24,7 +24,7 @@ data = {
              "kw_sl": 110,
              "tank": 45,
              "ver": 7.8,
-             "bat_km_WLTP": 0,
+             "bat_km_WLTP": 800,
              "direct_co2": 120
         },
         {
@@ -40,7 +40,7 @@ data = {
              "kw_sl": 110,
              "tank": 45,
              "ver": 7.8,
-             "bat_km_WLTP": 0,
+             "bat_km_WLTP": 700,
             "direct_co2": 1800
         },
 {
@@ -56,7 +56,7 @@ data = {
              "kw_sl": 110,
              "tank": 45,
              "ver": 7.8,
-             "bat_km_WLTP": 0,
+             "bat_km_WLTP": 900,
              "direct_co2": 200
         },
 {
@@ -72,7 +72,7 @@ data = {
              "kw_sl": 110,
              "tank": 45,
              "ver": 7.8,
-             "bat_km_WLTP": 0,
+             "bat_km_WLTP": 600,
              "direct_co2": 300
         },
         {

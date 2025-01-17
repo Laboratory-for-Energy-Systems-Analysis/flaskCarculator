@@ -241,6 +241,9 @@ def initialize_model(params):
         m.set_vehicle_masses()
         m.calculate_ttw_energy()
 
+    if params.get("range", 0) > 0:
+        m["range"] = params["range"]
+
     errors = validate_output_data(data=m, request=params)
 
     if errors:
