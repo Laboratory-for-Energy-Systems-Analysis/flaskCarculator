@@ -222,7 +222,7 @@ def initialize_model(params):
         payload=payload,
         target_range=target_range,
         annual_mileage=annual_mileage,
-        fuel_blends=fuel_blends
+        fuel_blend=fuel_blends
     )
 
     m = set_vehicle_properties_before_run(m, params)
