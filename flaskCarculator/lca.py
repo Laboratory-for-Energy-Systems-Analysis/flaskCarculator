@@ -195,6 +195,16 @@ def initialize_model(params):
             (params["powertrain"], params["size"], params["year"]): params["target_range"]
         }
 
+    # build fuel blends
+    fuel_blends = {}
+    for fuel in [
+        "diesel",
+        "petrol",
+        "methane",
+        "hydrogen"
+    ]:
+        if fuel in params:
+            fuel_blends[fuel] = {"primary": {"type": params[fuel], "share": [1.0, ]}}
 
     cycle = None
     if params.get("cycle", None):
@@ -211,7 +221,8 @@ def initialize_model(params):
         drop_hybrids=False,
         payload=payload,
         target_range=target_range,
-        annual_mileage=annual_mileage
+        annual_mileage=annual_mileage,
+        fuel_blends=fuel_blends
     )
 
     m = set_vehicle_properties_before_run(m, params)
