@@ -71,7 +71,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver": 7.8,
+             "ver": 1.6,
              "bat_km_WLTP": 600,
              "direct_co2": 300
         },

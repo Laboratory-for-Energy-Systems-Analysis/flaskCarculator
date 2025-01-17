@@ -11,6 +11,7 @@ def format_results_for_tcs(data: xr.DataArray, params: dict) -> dict:
             for year in data.array.coords["year"].values:
                 fuel_consumption = data.array.sel(powertrain=powertrain, size=size, parameter="fuel consumption",
                                                   year=year).values
+                print(powertrain, "fuel consumption", fuel_consumption)
                 electricity_consumption = data.array.sel(powertrain=powertrain, size=size,
                                                          parameter="electricity consumption", year=year).values
 
@@ -18,6 +19,7 @@ def format_results_for_tcs(data: xr.DataArray, params: dict) -> dict:
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
 
                     for impact, value in emission_factor.items():
+                        print("impact", impact, "value", value)
                         data.results.loc[dict(
                             powertrain=powertrain,
                             size=size,
@@ -27,7 +29,6 @@ def format_results_for_tcs(data: xr.DataArray, params: dict) -> dict:
                         )] = float((fuel_consumption * value) + (electricity_consumption * value))
 
                 else:
-
                     electricity_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-e"]
 
                     if powertrain == "PHEV-d":
