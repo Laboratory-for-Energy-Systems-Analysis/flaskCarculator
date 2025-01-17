@@ -17,8 +17,8 @@ PHEV-d:
   density: 0.85
   lhv: 36.8
 ICEV-g:
-  density: 0.215
-  lhv: 10.2
+  density: 1
+  lhv: 50
 FCEV:
-  density: 0.038
+  density: 1
   lhv: 120
