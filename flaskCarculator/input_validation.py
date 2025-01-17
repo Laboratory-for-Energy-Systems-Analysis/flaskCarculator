@@ -95,7 +95,7 @@ def validate_input_data(data: dict) -> list:
         "func_unit",
         "scenario",
         "method",
-        "indicator"
+        "indicator",
         # TCS nomenclature
         "fuel consumption",
         "electricity consumption",
