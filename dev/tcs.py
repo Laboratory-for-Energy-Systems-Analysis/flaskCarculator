@@ -44,7 +44,7 @@ data = {
             "direct_co2": 1800
         },
 {
-             "id": "ICEV003",
+             "id": "FCEV003",
              "vehicle_type": "car",
              "tsa": "X",
              "year": 2020,
@@ -55,12 +55,12 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver": 7.8,
+             "ver": 1.6,
              "bat_km_WLTP": 900,
              "direct_co2": 200
         },
 {
-             "id": "FCEV004",
+             "id": "ICEVg004",
              "vehicle_type": "car",
              "tsa": "Z",
              "year": 2020,
@@ -71,7 +71,7 @@ data = {
              "kw": 110,
              "kw_sl": 110,
              "tank": 45,
-             "ver": 1.6,
+             "ver": 4.0,
              "bat_km_WLTP": 600,
              "direct_co2": 300
         },
