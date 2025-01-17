@@ -225,6 +225,7 @@ def initialize_model(params):
         fuel_blend=fuel_blends
     )
 
+
     m = set_vehicle_properties_before_run(m, params)
 
     m.set_all()
