@@ -280,12 +280,44 @@ def initialize_model(params):
     if "indicator" in params:
         indicator = params["indicator"]
 
+    electricity_mix = None
+    if "electricity" in params:
+
+        technology_indices = {
+            "hydro": 0,
+            "nuclear": 1,
+            "gas": 2,
+            "solar": 3,
+            "wind": 4,
+            "biomass": 5,
+            "coal": 6,
+            "oil": 7,
+            "geothermal": 8,
+            "waste": 9,
+            "biogas_ccs": 10,
+            "biomass_ccs": 11,
+            "coal_ccs": 12,
+            "gas_ccs": 13,
+            "wood_ccs": 14,
+            "hydro_alpine": 15,
+            "gas_ccgt": 16,
+            "gas_chp": 17,
+            "solar_thermal": 18,
+            "wind_offshore": 19,
+            "lignite": 20,
+        }
+
+        electricity_mix = np.zeros(21)
+        electricity_mix[technology_indices[params["electricity"]]] = 1
+        electricity_mix = {"custom electricity mix": [electricity_mix]}
+
     m.inventory = inventory(
         m,
         method=method,
         indicator=indicator,
         scenario=scenario,
-        functional_unit=func_unit
+        functional_unit=func_unit,
+        background_configuration=electricity_mix
     )
     results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
