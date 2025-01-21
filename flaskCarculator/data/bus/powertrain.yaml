@@ -2,5 +2,7 @@ powertrain:
   - ICEV-d
   - ICEV-g
   - HEV-d
-  - BEV
+  - BEV-motion
+  - BEV-opp
+  - BEV-depot
   - FCEV
