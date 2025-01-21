@@ -48,7 +48,7 @@ def set_combustion_power_share(array, params):
     """
     Sets the combustion power share in the array based on the powertrain type.
     """
-    if params["powertrain"] in ["HEV-d", "HEV-p"]:
+    if params["powertrain"] in ["HEV-d", "HEV-p"] and all(x in params for x in ["primary_engine_power", "total_engine_power"]):
         array.loc[dict(parameter="combustion power share")] = params["primary_engine_power"] / params["total_engine_power"]
     elif params["powertrain"] in ["ICEV-d", "ICEV-p", "ICEV-g"]:
         array.loc[dict(parameter="combustion power share")] = 1
