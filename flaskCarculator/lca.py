@@ -201,12 +201,57 @@ def initialize_model(params):
             (params["powertrain"], params["size"], params["year"]): params["payload"]
         }
 
+        if params["powertrain"] == "PHEV-d":
+            payload.update(
+                {
+                    ("PHEV-c-d", params["size"], params["year"]): params["payload"]
+                }
+            )
+            payload.update(
+                {
+                    ("PHEV-e", params["size"], params["year"]): params["payload"]
+                }
+            )
+        if params["powertrain"] == "PHEV-p":
+            payload.update(
+                {
+                    ("PHEV-c-p", params["size"], params["year"]): params["payload"]
+                }
+            )
+            payload.update(
+                {
+                    ("PHEV-e", params["size"], params["year"]): params["payload"]
+                }
+            )
 
     target_range = None
     if params.get("target_range", 0) > 0:
         target_range = {
             (params["powertrain"], params["size"], params["year"]): params["target_range"]
         }
+        if params["powertrain"] == "PHEV-d":
+            target_range.update(
+                {
+                    ("PHEV-c-d", params["size"], params["year"]): params["target_range"]
+                }
+            )
+            target_range.update(
+                {
+                    ("PHEV-e", params["size"], params["year"]): params["target_range"]
+                }
+            )
+        if params["powertrain"] == "PHEV-p":
+            payload.update(
+                {
+                    ("PHEV-c-p", params["size"], params["year"]): params["target_range"]
+                }
+            )
+            payload.update(
+                {
+                    ("PHEV-e", params["size"], params["year"]): params["target_range"]
+                }
+            )
+
 
     if "average passengers" in params:
         array.loc[dict(parameter="average passengers")] = params["average passengers"]
