@@ -123,7 +123,7 @@ def set_properties_for_plugin(model, params):
         range_c = model.array.loc[dict(powertrain="PHEV-c-p", parameter="range")]
         range_km = model.array.loc[dict(powertrain="PHEV-p", parameter="range")]
     if params["powertrain"] == "PHEV-d" and "PHEV-c-d" in model.array.powertrain.values:
-        if "range" in model.array.parameter.values
+        if "range" in model.array.parameter.values:
             range_c = model.array.loc[dict(powertrain="PHEV-c-d", parameter="range")]
             range_km = model.array.loc[dict(powertrain="PHEV-d", parameter="range")]
     if range_c and range_km:
