@@ -37,6 +37,7 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
             else:
                 factor = 1
 
+            print(request[field], data.array.sel(parameter=field, value=0).values, factor)
             if not np.isclose(request[field], data.array.sel(parameter=field, value=0).values * factor, rtol=0.02):
                 errors.append(f"Vehicle {request['id']} has invalid value for field {field}."
                               f" Expected {request[field]}, got {data.array.sel(parameter=field, value=0).values}")
