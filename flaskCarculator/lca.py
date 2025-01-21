@@ -95,18 +95,28 @@ def set_properties_for_plugin(model, params):
     :param params:
     :return:
     """
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")] = params["fuel consumption"] / 100
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy")] = params["TtW energy"]
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="electric energy stored")] = params["electric energy stored"]
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
+    if "electricity consumption" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
+    if "fuel consumption" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")] = params["fuel consumption"] / 100
+    if "TtW energy" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy")] = params["TtW energy"]
+    if "electric energy stored" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="electric energy stored")] = params["electric energy stored"]
 
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="combustion power")] = params["primary power"]
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")] = params["power"] - params["primary power"]
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
+    if "curb mass" in params and "powertrain" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
+
+    if "primary power" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="combustion power")] = params["primary power"]
+    if "power" in params and "primary power" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")] = params["power"] - params["primary power"]
+    if "power" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
     model.set_vehicle_mass()
     model.set_component_masses()
-    model["driving mass"] = params["driving mass"]
+    if "driving mass" in params:
+        model["driving mass"] = params["driving mass"]
 
     range_c, range_km = 0, 0
     if params["powertrain"] == "PHEV-p":
