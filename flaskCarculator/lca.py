@@ -122,11 +122,13 @@ def set_properties_for_plugin(model, params):
     if params["powertrain"] == "PHEV-p":
         range_c = model.array.loc[dict(powertrain="PHEV-c-p", parameter="range")]
         range_km = model.array.loc[dict(powertrain="PHEV-p", parameter="range")]
-    if params["powertrain"] == "PHEV-d":
-        range_c = model.array.loc[dict(powertrain="PHEV-c-d", parameter="range")]
-        range_km = model.array.loc[dict(powertrain="PHEV-d", parameter="range")]
-    ratio_range = range_c / range_km
-    model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel mass")] /= ratio_range
+    if params["powertrain"] == "PHEV-d" and "PHEV-c-d" in model.array.powertrain.values:
+        if "range" in model.array.parameter.values
+            range_c = model.array.loc[dict(powertrain="PHEV-c-d", parameter="range")]
+            range_km = model.array.loc[dict(powertrain="PHEV-d", parameter="range")]
+    if range_c and range_km:
+        ratio_range = range_c / range_km
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel mass")] /= ratio_range
 
     return model
 
