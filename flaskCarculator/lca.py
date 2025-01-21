@@ -189,6 +189,7 @@ def initialize_model(params):
             (params["powertrain"], params["size"], params["year"]): params["payload"]
         }
 
+
     target_range = None
     if params.get("target_range", 0) > 0:
         target_range = {
