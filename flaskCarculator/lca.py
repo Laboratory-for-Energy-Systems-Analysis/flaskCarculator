@@ -251,8 +251,7 @@ def initialize_model(params):
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
 
-    if params["vehicle_type"] == "car":
-        m.drop_hybrid()
+    m.drop_hybrid()
 
     if params.get("electric energy stored", 0) > 0:
         m["electric energy stored"] = params["electric energy stored"]
