@@ -113,7 +113,7 @@ def set_properties_for_plugin(model, params):
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")] = params["power"] - params["primary power"]
     if "power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
-    model.set_vehicle_mass()
+    model.set_vehicle_masses()
     model.set_component_masses()
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
