@@ -66,6 +66,9 @@ def format_results_for_tcs(data: xr.DataArray, params: dict) -> dict:
     if "direct_co2" in params:
         data.results.loc[dict(impact_category="climate change", impact="direct - exhaust")] = params["direct_co2"]
 
+    if "fuel_co2" in params:
+        data.results.loc[dict(impact_category="climate change", impact="energy chain")] = params["fuel_co2"]
+
     for field, subfield in TCS_IMPACTS_MAPPING.items():
         results[field] = data.results.sel(
             impact_category=subfield["impact_category"],

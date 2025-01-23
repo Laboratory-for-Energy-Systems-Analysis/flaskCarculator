@@ -107,7 +107,8 @@ def validate_input_data(data: dict) -> list:
         "electricity consumption",
         "fuel tank volume",
         "primary power",
-        "direct_co2"
+        "direct_co2",
+        "fuel_co2"
     ]
 
     errors = []

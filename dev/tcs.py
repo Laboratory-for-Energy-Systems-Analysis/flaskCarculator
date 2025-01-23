@@ -25,7 +25,8 @@ data = {
              "tank": 45,
              "ver": 7.8,
              "bat_km_WLTP": 800,
-             "direct_co2": 120
+             "direct_co2": 120,
+             "fuel_co2": 50
         },
         {
              "id": "ICEV002",
@@ -41,7 +42,8 @@ data = {
              "tank": 45,
              "ver": 7.8,
              "bat_km_WLTP": 700,
-            "direct_co2": 1800
+             "direct_co2": 1800,
+             "fuel_co2": 80
         },
 {
              "id": "FCEV003",
@@ -57,7 +59,8 @@ data = {
              "tank": 45,
              "ver": 1.6,
              "bat_km_WLTP": 900,
-             "direct_co2": 200
+             "direct_co2": 200,
+             "fuel_co2": 120
         },
 {
              "id": "ICEVg004",
@@ -73,7 +76,8 @@ data = {
              "tank": 45,
              "ver": 4.0,
              "bat_km_WLTP": 600,
-             "direct_co2": 300
+             "direct_co2": 300,
+             "fuel_co2": 20
         },
         {
             "id": "BEV001",
@@ -92,7 +96,8 @@ data = {
             "bat_typ": "LFP",
             "bat_km_WLTP": 513,
             "ver_strom": 13,
-            "direct_co2": 0
+            "direct_co2": 0,
+            "fuel_co2": 120
         },
         # {
         #     "id": "PHEV001",
