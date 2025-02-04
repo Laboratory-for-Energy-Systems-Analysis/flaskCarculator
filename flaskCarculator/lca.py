@@ -113,6 +113,13 @@ def set_properties_for_plugin(model, params):
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")] = params["power"] - params["primary power"]
     if "power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
+
+    if "curb mass" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")] = params["curb mass"]
+
+    if "driving mass" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
+
     model.set_vehicle_masses()
     model.set_component_masses()
     if "driving mass" in params:
@@ -271,6 +278,8 @@ def initialize_model(params):
     if params.get("cycle", None):
         cycle = params["cycle"]
 
+    print(params)
+
     m = model(
         array,
         country=params.get("country", "CH"),
@@ -296,7 +305,6 @@ def initialize_model(params):
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
 
-    m.drop_hybrid()
 
     if params.get("electric energy stored", 0) > 0:
         m["electric energy stored"] = params["electric energy stored"]
@@ -313,6 +321,7 @@ def initialize_model(params):
         )
         m.set_vehicle_masses()
         m.calculate_ttw_energy()
+        m.drop_hybrid()
 
     if params.get("range", 0) > 0:
         m["range"] = params["range"]
