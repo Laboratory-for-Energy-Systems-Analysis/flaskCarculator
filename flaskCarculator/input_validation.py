@@ -246,6 +246,21 @@ def translate_tcs_to_carculator(data: dict) -> dict:
             if k not in TCS_PARAMETERS:
                 new_vehicle[k] = v
 
+        for k, v in new_vehicle.items():
+            if k in [
+                "range",
+                "curb mass",
+                "cargo mass",
+                "driving mass",
+                "primary power",
+                "power",
+                "fuel tank volume",
+                "electric energy stored",
+                "fuel consumption",
+                "electricity consumption",
+            ]:
+                new_vehicle[k] = float(v)
+
         translated_data.append(new_vehicle)
 
     data["vehicles"] = translated_data
