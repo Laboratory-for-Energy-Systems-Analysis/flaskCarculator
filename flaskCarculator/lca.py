@@ -278,8 +278,6 @@ def initialize_model(params):
     if params.get("cycle", None):
         cycle = params["cycle"]
 
-    print(params)
-
     m = model(
         array,
         country=params.get("country", "CH"),

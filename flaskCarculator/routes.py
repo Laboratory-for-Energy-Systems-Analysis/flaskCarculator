@@ -74,7 +74,7 @@ def calculate_lca():
 
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
-                    vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).values.item()
+                    vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
 
             vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
             vehicle["indicators"] = models[vehicle["id"]].inventory.method
@@ -95,6 +95,7 @@ def calculate_lca():
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
 
     return Response(
         json.dumps(data, indent=2, sort_keys=False),  # Serialize using the ordered structure
