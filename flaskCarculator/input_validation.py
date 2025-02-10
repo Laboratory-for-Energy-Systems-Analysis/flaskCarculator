@@ -207,7 +207,7 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
 
 
 
-def translate_tcs_to_carculator(data: dict) -> dict:
+def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
     """
     Translates the TCS nomenclature to the Carculator nomenclature.
     :param data: data to translate
@@ -223,6 +223,7 @@ def translate_tcs_to_carculator(data: dict) -> dict:
             if k in vehicle:
                 new_vehicle[v] = vehicle[k]
 
+
         if "fzklasse" in vehicle:
             if vehicle["fzklasse"] in TCS_SIZE:
                 new_vehicle["size"] = TCS_SIZE[vehicle["fzklasse"]]
@@ -230,6 +231,10 @@ def translate_tcs_to_carculator(data: dict) -> dict:
         if "tsa" in vehicle:
             if vehicle["tsa"] in TCS_POWERTRAIN:
                 new_vehicle["powertrain"] = TCS_POWERTRAIN[vehicle["tsa"]]
+
+            if "bat_km_WLTP" in vehicle:
+                if TCS_POWERTRAIN[vehicle["tsa"]] != "BEV":
+                    errors.append(f"Vehicle {vehicle['id']} has a battery range but is not an electric vehicle.")
 
         new_vehicle["TtW energy"] = 0
         # fuel consumption, in L/100 km
@@ -265,7 +270,7 @@ def translate_tcs_to_carculator(data: dict) -> dict:
 
     data["vehicles"] = translated_data
 
-    return data
+    return data, errors
 
 
 def validate_input(data: dict) -> [list, list]:
@@ -286,11 +291,11 @@ def validate_input(data: dict) -> [list, list]:
             errors.append(f"Missing mandatory term: {term}")
 
     if data.get("nomenclature") == "tcs":
-        data = translate_tcs_to_carculator(data)
+        data, errors = translate_tcs_to_carculator(data, errors)
 
     if data.get("nomenclature") == "swisscargo":
         data = translate_swisscargo_to_carculator(data)
 
-    errors = validate_input_data(data)
+    errors.extend(validate_input_data(data))
 
     return data, errors

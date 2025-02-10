@@ -76,12 +76,17 @@ def set_vehicle_properties_after_run(model, params):
 
     if params.get("driving mass", 0) > 0:
         model.array.loc[dict(parameter="driving mass")] = params["driving mass"]
+
     if params.get("TtW energy", 0) > 0:
         model.array.loc[dict(parameter="TtW energy")] = params["TtW energy"]
+
     if params.get("fuel consumption", 0) > 0:
         model.array.loc[dict(parameter="fuel consumption")] = params["fuel consumption"] / 100
+        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (params["fuel consumption"] / 100) * 42600
+
     if params.get("electricity consumption", 0) > 0:
         model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100
+        model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
 
     if params.get("range", 0) > 0:
         model.array.loc[dict(parameter="range")] = params["range"]
@@ -125,17 +130,11 @@ def set_properties_for_plugin(model, params):
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
 
-    range_c, range_km = 0, 0
-    if params["powertrain"] == "PHEV-p":
-        range_c = model.array.loc[dict(powertrain="PHEV-c-p", parameter="range")]
-        range_km = model.array.loc[dict(powertrain="PHEV-p", parameter="range")]
-    if params["powertrain"] == "PHEV-d" and "PHEV-c-d" in model.array.powertrain.values:
-        if "range" in model.array.parameter.values:
-            range_c = model.array.loc[dict(powertrain="PHEV-c-d", parameter="range")]
-            range_km = model.array.loc[dict(powertrain="PHEV-d", parameter="range")]
-    if range_c and range_km:
-        ratio_range = range_c / range_km
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel mass")] /= ratio_range
+    model.array.loc[dict(parameter="range")] = (
+        model.array.loc[dict(parameter="electric energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, electric mode")]
+    ) + (
+        model.array.loc[dict(parameter="oxidation energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, combustion mode")]
+    )
 
     return model
 
@@ -286,13 +285,12 @@ def initialize_model(params):
         power=power,
         target_mass=target_mass,
         energy_consumption=energy_consumption,
-        drop_hybrids=False,
+        drop_hybrids=True,
         payload=payload,
         target_range=target_range,
         annual_mileage=annual_mileage,
         fuel_blend=fuel_blends
     )
-
 
     m = set_vehicle_properties_before_run(m, params)
 
@@ -311,18 +309,16 @@ def initialize_model(params):
         m["battery BoP mass"] = (
                 m["energy battery mass"] - m["battery cell mass"]
         )
-        var = "target range" if "target range" in m.array.parameter.values else "range"
-        m[var] = (
-                m["electric energy stored"]
-                * 3600
-                / m["TtW energy, electric mode"]
-        )
-        m.set_vehicle_masses()
-        m.calculate_ttw_energy()
-        m.drop_hybrid()
-
-    if params.get("range", 0) > 0:
-        m["range"] = params["range"]
+        if params["powertrain"] not in ["PHEV-d", "PHEV-p"]:
+            var = "target range" if "target range" in m.array.parameter.values else "range"
+            m[var] = (
+                    m["electric energy stored"]
+                    * 3600
+                    / m["TtW energy, electric mode"]
+            )
+            m.set_vehicle_masses()
+            m.calculate_ttw_energy()
+            m.drop_hybrid()
 
     errors = validate_output_data(data=m, request=params)
 
