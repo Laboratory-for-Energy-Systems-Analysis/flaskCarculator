@@ -320,6 +320,9 @@ def initialize_model(params):
             m.calculate_ttw_energy()
             m.drop_hybrid()
 
+            if params.get("range", 0) > 0:
+                m.array.loc[dict(parameter="range")] = params["range"]
+
     errors = validate_output_data(data=m, request=params)
 
     if errors:
