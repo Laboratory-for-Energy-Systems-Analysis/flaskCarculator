@@ -91,6 +91,10 @@ def set_vehicle_properties_after_run(model, params):
     if params.get("range", 0) > 0:
         model.array.loc[dict(parameter="range")] = params["range"]
 
+    if params.get("cargo mass", None):
+        model.array.loc[dict(parameter="cargo mass")] = params["cargo mass"]
+        model.array.loc[dict(parameter="total cargo mass")] = params["cargo mass"]
+
     return model
 
 def set_properties_for_plugin(model, params):
@@ -119,13 +123,10 @@ def set_properties_for_plugin(model, params):
     if "power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
 
-    if "curb mass" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")] = params["curb mass"]
-
     if "driving mass" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
 
-    model.set_vehicle_masses()
+    model.set_vehicle_mass()
     model.set_component_masses()
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
@@ -277,6 +278,10 @@ def initialize_model(params):
     if params.get("cycle", None):
         cycle = params["cycle"]
 
+    uf = None
+    if params.get("electric utility factor", None):
+        uf = {params["year"]: params["electric utility factor"]}
+
     m = model(
         array,
         country=params.get("country", "CH"),
@@ -289,14 +294,15 @@ def initialize_model(params):
         payload=payload,
         target_range=target_range,
         annual_mileage=annual_mileage,
-        fuel_blend=fuel_blends
+        fuel_blend=fuel_blends,
+        electric_utility_factor=uf,
     )
 
     m = set_vehicle_properties_before_run(m, params)
 
     m.set_all()
 
-    m = set_vehicle_properties_after_run(m, params)
+
 
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
@@ -316,12 +322,15 @@ def initialize_model(params):
                     * 3600
                     / m["TtW energy, electric mode"]
             )
-            m.set_vehicle_masses()
+            m.set_vehicle_mass()
+            m.override_battery_capacity()
             m.calculate_ttw_energy()
             m.drop_hybrid()
 
             if params.get("range", 0) > 0:
                 m.array.loc[dict(parameter="range")] = params["range"]
+
+    m = set_vehicle_properties_after_run(m, params)
 
     errors = validate_output_data(data=m, request=params)
 

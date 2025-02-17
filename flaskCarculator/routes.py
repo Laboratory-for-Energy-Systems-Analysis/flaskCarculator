@@ -40,9 +40,6 @@ def calculate_lca():
             default_vehicle_parameters = [
                 "lifetime kilometers",
                 "kilometers per year",
-                "curb mass",
-                "cargo mass",
-                "total cargo mass",
                 "average passengers",
                 "capacity utilization",
                 "daily distance",
@@ -70,6 +67,25 @@ def calculate_lca():
                 "fuel cell system efficiency",
                 "fuel cell lifetime replacements",
                 "oxidation energy stored",
+                "glider base mass",
+                "fuel mass",
+                "charger mass",
+                "converter mass",
+                "inverter mass",
+                "power distribution unit mass",
+                "combustion engine mass",
+                "electric engine mass",
+                "powertrain mass",
+                "fuel cell stack mass",
+                "fuel cell ancillary BoP mass",
+                "fuel cell essential BoP mass",
+                "battery cell mass",
+                "battery BoP mass",
+                "fuel tank mass",
+                "curb mass",
+                "cargo mass",
+                "total cargo mass",
+                "driving mass"
             ]
 
             for p in default_vehicle_parameters:
