@@ -302,8 +302,6 @@ def initialize_model(params):
 
     m.set_all()
 
-
-
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
 
@@ -399,5 +397,7 @@ def initialize_model(params):
 
     m.version = models[params["vehicle_type"]]["version"]
     m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
+
+    # m.inventory.export_lci(format="file", filename=f"lci_{params['id']}.xlsx")
 
     return m
