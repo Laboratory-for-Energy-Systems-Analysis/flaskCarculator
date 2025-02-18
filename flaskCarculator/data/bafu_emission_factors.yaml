@@ -6,40 +6,60 @@
 BEV:
   climate change: 0.110
   total: 9.14
+  "energy resources: non-renewable": 3.78 # 41.37% non-renewable, including nuclear
+  "energy resources: renewable": 5.36
 
 PHEV-e:
   climate change: 0.110
   total: 9.14
+  "energy resources: non-renewable": 3.78 # 41.37% non-renewable, including nuclear
+  "energy resources: renewable": 5.36
 
 # per liter
 ICEV-p:
   climate change: 0.461
   total: 42.3
+  "energy resources: non-renewable": 42.3
+  "energy resources: renewable": 0.0
 
 PHEV-c-p:
   climate change: 0.461
   total: 42.3
+  "energy resources: non-renewable": 42.3
+  "energy resources: renewable": 0.0
 
 HEV-p:
   climate change: 0.461
   total: 42.3
+  "energy resources: non-renewable": 42.3
+  "energy resources: renewable": 0.0
 
 ICEV-d:
   climate change: 0.433
   total: 46.1
+  "energy resources: non-renewable": 46.1
+  "energy resources: renewable": 0.0
 
 PHEV-c-d:
   climate change: 0.433
   total: 46.1
+  "energy resources: non-renewable": 46.1
+  "energy resources: renewable": 0.0
 
 HEV-d:
   climate change: 0.433
   total: 46.1
+  "energy resources: non-renewable": 46.1
+  "energy resources: renewable": 0.0
 
 ICEV-g:
   climate change: 0.503
   total: 0.0434
+  "energy resources: non-renewable": 0.0434
+  "energy resources: renewable": 0.0 # 20% biogas, included in waste instead
 
 FCEV:
   climate change: 1.584
   total: 0.0276
+  "energy resources: non-renewable": 0.0
+  "energy resources: renewable": 0.0276

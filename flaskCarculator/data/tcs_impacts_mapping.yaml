@@ -30,6 +30,70 @@ lca_Primärenergie_direkt:
     impact_category: total
     impact: direct - exhaust
 
+lca_Primärenergie_betrieb_non_renew:
+  impact_category: "energy resources: non-renewable"
+  impact: energy chain
+
+lca_Primärenergie_wartung_non_renew:
+  impact_category: "energy resources: non-renewable"
+  impact: maintenance
+
+lca_Primärenergie_karosserie_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: glider
+
+lca_Primärenergie_entsorgung_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: EoL
+
+lca_Primärenergie_antrieb_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: powertrain
+
+lca_Primärenergie_speicher_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: energy storage
+
+lca_Primärenergie_strasse_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: road
+
+lca_Primärenergie_direkt_non_renew:
+    impact_category: "energy resources: non-renewable"
+    impact: direct - exhaust
+
+lca_Primärenergie_betrieb_renew:
+  impact_category: "energy resources: renewable"
+  impact: energy chain
+
+lca_Primärenergie_wartung_renew:
+  impact_category: "energy resources: renewable"
+  impact: maintenance
+
+lca_Primärenergie_karosserie_renew:
+    impact_category: "energy resources: renewable"
+    impact: glider
+
+lca_Primärenergie_entsorgung_renew:
+    impact_category: "energy resources: renewable"
+    impact: EoL
+
+lca_Primärenergie_antrieb_renew:
+    impact_category: "energy resources: renewable"
+    impact: powertrain
+
+lca_Primärenergie_speicher_renew:
+    impact_category: "energy resources: renewable"
+    impact: energy storage
+
+lca_Primärenergie_strasse_renew:
+    impact_category: "energy resources: renewable"
+    impact: road
+
+lca_Primärenergie_direkt_renew:
+    impact_category: "energy resources: renewable"
+    impact: direct - exhaust
+
 lca_GWP_betrieb:
     impact_category: climate change
     impact: energy chain
