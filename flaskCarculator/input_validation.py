@@ -280,7 +280,7 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
                 new_vehicle["powertrain"] = TCS_POWERTRAIN[vehicle["tsa"]]
 
             if "bat_km_WLTP" in vehicle:
-                if TCS_POWERTRAIN[vehicle["tsa"]] not in ["BEV", ]:
+                if TCS_POWERTRAIN[vehicle["tsa"]] not in ["BEV", "FCEV"]:
                     if TCS_POWERTRAIN.get(vehicle["tsa"]) in ["PHEV-p", "PHEV-d"]:
                         real_uf, wltp_uf = calculate_utility_factor(vehicle["bat_km_WLTP"])
                         new_vehicle["electric utility factor"] = real_uf / 100
@@ -293,7 +293,10 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
         # fuel consumption, in L/100 km
         if "ver" in vehicle:
             if new_vehicle["powertrain"] not in ("PHEV-p", "PHEV-d"):
-                new_vehicle["fuel consumption"] = vehicle["ver"]
+                if new_vehicle["powertrain"] == "FCEV":
+                    new_vehicle["fuel consumption"] = vehicle["ver"] * 11123 # converts kg to liters at ambient pressure
+                else:
+                    new_vehicle["fuel consumption"] = vehicle["ver"]
                 new_vehicle["TtW energy"] += int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
             else:
                 new_vehicle["fuel consumption"] = vehicle["ver"] * ((1 - new_vehicle["electric utility factor"]) / (1 - new_vehicle["electric utility factor (wltp)"]))

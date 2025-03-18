@@ -21,4 +21,4 @@ ICEV-g:
   lhv: 50
 FCEV:
   density: 1
-  lhv: 120
+  lhv: 0.01348617667

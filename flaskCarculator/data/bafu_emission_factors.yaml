@@ -62,4 +62,4 @@ FCEV:
   climate change: 1.584
   total: 0.0276
   "energy resources: non-renewable": 0.0
-  "energy resources: renewable": 0.0276
+  "energy resources: renewable": 307.2 # 100% renewable, MJ/kg H2
