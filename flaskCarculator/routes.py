@@ -21,14 +21,19 @@ def calculate_lca():
     if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    models = {vehicle["id"]: initialize_model(vehicle) for vehicle in data["vehicles"]}
+    models = {vehicle["id"]: initialize_model(vehicle, data.get("nomenclature")) for vehicle in data["vehicles"]}
 
     try:
         for vehicle in data["vehicles"]:
             if data.get("nomenclature") == "tcs":
-                vehicle["results"] = format_results_for_tcs(
+                vehicle["results_ecoinvent"] = format_results_for_tcs(
                     data=models[vehicle["id"]],
                     params=vehicle
+                )
+                vehicle["results_bafu"] = format_results_for_tcs(
+                    data=models[vehicle["id"]],
+                    params=vehicle,
+                    bafu=True
                 )
             elif data.get("nomenclature") == "swisscargo":
                 vehicle["results"] = format_results_for_swisscargo(

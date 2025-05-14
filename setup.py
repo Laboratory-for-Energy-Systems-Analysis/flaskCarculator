@@ -8,7 +8,12 @@ setup(
     include_package_data=True,
     install_requires=[
         'Flask',
-        'carculator'
+        'carculator',
+        'carculator_truck',
+        'carculator_two_wheeler',
+        'carculator_bus',
+        'carculator_utils',
+
     ],
     entry_points={
         'console_scripts': [

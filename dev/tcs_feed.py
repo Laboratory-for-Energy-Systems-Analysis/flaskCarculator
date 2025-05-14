@@ -14,32 +14,53 @@ def check_results(results):
     """
     for vehicle in results["vehicles"]:
         # lca_GWP_karosserie must be between 10 and 150
-        if vehicle["results"]["lca_GWP_karosserie"] < 10 or vehicle["results"]["lca_GWP_karosserie"] > 150:
-            print(f"lca_GWP_karosserie: {vehicle['results']['lca_GWP_karosserie']}")
+        if vehicle["results_ecoinvent"]["lca_GWP_karosserie"] < 10 or vehicle["results_ecoinvent"]["lca_GWP_karosserie"] > 150:
+            print(f"lca_GWP_karosserie: {vehicle['results_ecoinvent']['lca_GWP_karosserie']}")
+            print(vehicle)
+            print("#" * 50)
+
+        if vehicle["results_bafu"]["lca_GWP_karosserie"] < 10 or vehicle["results_bafu"]["lca_GWP_karosserie"] > 150:
+            print(f"lca_GWP_karosserie: {vehicle['results_bafu']['lca_GWP_karosserie']}")
             print(vehicle)
             print("#" * 50)
 
         # lca_GWP_speicher must be between 0 and 50
-        if vehicle["results"]["lca_GWP_speicher"] < 0 or vehicle["results"]["lca_GWP_speicher"] > 50:
-            print(f"lca_GWP_speicher: {vehicle['results']['lca_GWP_speicher']}")
+        if vehicle["results_ecoinvent"]["lca_GWP_speicher"] < 0 or vehicle["results_ecoinvent"]["lca_GWP_speicher"] > 50:
+            print(f"lca_GWP_speicher: {vehicle['results_ecoinvent']['lca_GWP_speicher']}")
+            print(vehicle)
+            print("#" * 50)
+        if vehicle["results_bafu"]["lca_GWP_speicher"] < 0 or vehicle["results_bafu"]["lca_GWP_speicher"] > 50:
+            print(f"lca_GWP_speicher: {vehicle['results_bafu']['lca_GWP_speicher']}")
             print(vehicle)
             print("#" * 50)
 
         # lca_GWP_strasse must be between 0 and 25
-        if vehicle["results"]["lca_GWP_strasse"] < 0 or vehicle["results"]["lca_GWP_strasse"] > 40:
-            print(f"lca_GWP_strasse: {vehicle['results']['lca_GWP_strasse']}")
+        if vehicle["results_ecoinvent"]["lca_GWP_strasse"] < 0 or vehicle["results_ecoinvent"]["lca_GWP_strasse"] > 40:
+            print(f"lca_GWP_strasse: {vehicle['results_ecoinvent']['lca_GWP_strasse']}")
+            print(vehicle)
+            print("#" * 50)
+        if vehicle["results_bafu"]["lca_GWP_strasse"] < 0 or vehicle["results_bafu"]["lca_GWP_strasse"] > 40:
+            print(f"lca_GWP_strasse: {vehicle['results_bafu']['lca_GWP_strasse']}")
             print(vehicle)
             print("#" * 50)
 
         # lca_Primärenergie_betrieb must be between 1 and 6.5
-        if vehicle["results"]["lca_Primärenergie_betrieb"] < 1 or vehicle["results"]["lca_Primärenergie_betrieb"] > 6.5:
-            print(f"lca_Primärenergie_betrieb: {vehicle['results']['lca_Primärenergie_betrieb']}")
+        if vehicle["results_ecoinvent"]["lca_Primärenergie_betrieb"] < 1 or vehicle["results_ecoinvent"]["lca_Primärenergie_betrieb"] > 6.5:
+            print(f"lca_Primärenergie_betrieb: {vehicle['results_ecoinvent']['lca_Primärenergie_betrieb']}")
+            print(vehicle)
+            print("#" * 50)
+        if vehicle["results_bafu"]["lca_Primärenergie_betrieb"] < 1 or vehicle["results_bafu"]["lca_Primärenergie_betrieb"] > 6.5:
+            print(f"lca_Primärenergie_betrieb: {vehicle['results_bafu']['lca_Primärenergie_betrieb']}")
             print(vehicle)
             print("#" * 50)
 
         # check that, if "batt_cap" is non-zero, "lca_GWP_speicher" must be superior to 1
-        if vehicle.get("bat_cap", 0) > 0 and vehicle["results"]["lca_GWP_speicher"] <= 1:
-            print(f"lca_GWP_speicher: {vehicle['results']['lca_GWP_speicher']}")
+        if vehicle.get("bat_cap", 0) > 0 and vehicle["results_ecoinvent"]["lca_GWP_speicher"] <= 1:
+            print(f"lca_GWP_speicher: {vehicle['results_ecoinvent']['lca_GWP_speicher']}")
+            print(vehicle)
+            print("#" * 50)
+        if vehicle.get("bat_cap", 0) > 0 and vehicle["results_bafu"]["lca_GWP_speicher"] <= 1:
+            print(f"lca_GWP_speicher: {vehicle['results_bafu']['lca_GWP_speicher']}")
             print(vehicle)
             print("#" * 50)
 
@@ -93,8 +114,15 @@ for index, row in df.iterrows():
         result = response.json()
         check_results(result)
         for vehicle in result["vehicles"]:
-            res = {k: v for k, v in vehicle.items() if k != "results"}
-            res.update(vehicle["results"])
+            res = {k: v for k, v in vehicle.items() if k not in ("results_ecoinvent", "results_bafu")}
+            res.update({
+                f"{k}_ecoinvent": v
+                for k, v in vehicle["results_ecoinvent"].items()
+            })
+            res.update({
+                f"{k}_bafu": v
+                for k, v in vehicle["results_bafu"].items()
+            })
             res.update({
                 "Model": row["Fahrzeugbezeichnung"],
             })

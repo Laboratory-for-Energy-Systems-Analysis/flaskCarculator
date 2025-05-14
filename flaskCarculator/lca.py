@@ -139,7 +139,7 @@ def set_properties_for_plugin(model, params):
 
     return model
 
-def initialize_model(params):
+def initialize_model(params, nomenclature=None):
     """
     Initializes and returns a CarModel instance with the given parameters.
     """
@@ -394,6 +394,21 @@ def initialize_model(params):
     )
     results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
+
+    # if nomenclature = "tcs", we want also to provide results
+    # using the BFU LCA database
+
+    if nomenclature == "tcs":
+        m.inventory.B.values = np.zeros(m.inventory.B.shape)
+        for category in [
+            "climate change",
+            "energy resources: non-renewable",
+            "energy resources: renewable",
+            "total"
+        ]:
+            m.inventory.B.loc[dict(category=category)] = np.ones( m.inventory.B.loc[dict(category=category)].shape)
+        results = m.inventory.calculate_impacts()
+        m.bafu_results = results.sel(value=0)
 
     m.version = models[params["vehicle_type"]]["version"]
     m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
