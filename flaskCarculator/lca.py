@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from carculator import CarInputParameters, CarModel, fill_xarray_from_input_parameters, InventoryCar
 from carculator import __version__ as carculator_version
 from carculator_truck import TruckInputParameters, TruckModel, InventoryTruck
@@ -8,7 +9,7 @@ from carculator_bus import __version__ as carculator_bus_version
 from carculator_two_wheeler import TwoWheelerInputParameters, TwoWheelerModel, InventoryTwoWheeler
 from carculator_two_wheeler import __version__ as carculator_two_wheeler_version
 
-from .data.mapping import FUEL_SPECS
+from .data.mapping import FUEL_SPECS, DATA_DIR
 from .output_validation import validate_output_data
 
 
@@ -42,6 +43,15 @@ models = {
         "ecoinvent version": "3.10.0"
     }
 }
+
+def load_bafu_emission_factors():
+    """
+    Load the BAFU emission factors from the CSV file.
+    """
+    # Assuming the CSV file is in the same directory as this script
+    filepath = DATA_DIR / "bafu_emission_factors" / "scores.xlsx"
+
+    return pd.read_excel(filepath)
 
 
 def set_combustion_power_share(array, params):
@@ -399,14 +409,29 @@ def initialize_model(params, nomenclature=None):
     # using the BFU LCA database
 
     if nomenclature == "tcs":
+        df = load_bafu_emission_factors()
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
+        m.inventory.results = None
+
         for category in [
             "climate change",
             "energy resources: non-renewable",
             "energy resources: renewable",
             "total"
         ]:
-            m.inventory.B.loc[dict(category=category)] = np.ones( m.inventory.B.loc[dict(category=category)].shape)
+            if category != "total":
+                factors = df.loc[
+                    df["impact"] == category
+                ]
+            else:
+                factors = df.loc[
+                    df["impact"] != "climate change"
+                ]
+                factors = factors.groupby("name").sum(numeric_only=True).reset_index()
+
+            for name in factors["name"].values:
+                m.inventory.B.loc[dict(activity=eval(name), category=category)] = factors.loc[factors["name"] == name, "score"].values.item(0)
+
         results = m.inventory.calculate_impacts()
         m.bafu_results = results.sel(value=0)
 

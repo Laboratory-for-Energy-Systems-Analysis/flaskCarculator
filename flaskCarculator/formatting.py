@@ -1,6 +1,7 @@
 from flaskCarculator.data.mapping import TCS_IMPACTS_MAPPING, BAFU_EMISSSION_FACTORS
 import xarray as xr
 
+
 def format_results_for_tcs(data: xr.DataArray, params: dict, bafu: bool = False) -> dict:
     """
     Format the results for TCS.
