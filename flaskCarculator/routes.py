@@ -96,6 +96,9 @@ def calculate_lca():
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
                     vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
+                    # make sure the value if a float (0.0 if it is a nan)
+                    if isinstance(vehicle[p], float) and (vehicle[p] is None or vehicle[p] != vehicle[p]):
+                        vehicle[p] = 0.0
 
             vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
             vehicle["indicators"] = models[vehicle["id"]].inventory.method
