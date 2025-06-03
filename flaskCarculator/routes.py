@@ -3,6 +3,7 @@ from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
 import json
+import numpy as np
 from collections import OrderedDict
 
 main = Blueprint('main', __name__)
@@ -95,10 +96,11 @@ def calculate_lca():
 
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
-                    vehicle[p] = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
-                    # make sure the value if a float (0.0 if it is a nan)
-                    if isinstance(vehicle[p], float) and (vehicle[p] is None or vehicle[p] != vehicle[p]):
-                        vehicle[p] = 0.0
+                    val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
+                    if not np.isfinite(val):  # Detects NaN, inf, -inf
+                        val = 0.0
+                    vehicle[p] = val
+
 
             vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
             vehicle["indicators"] = models[vehicle["id"]].inventory.method
