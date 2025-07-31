@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 main = Blueprint('main', __name__)
 
-@app.route("/")
+@main.route("/")
 def home():
     return "FlaskCarculator is running!"
 
