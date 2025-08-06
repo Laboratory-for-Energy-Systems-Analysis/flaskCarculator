@@ -8,6 +8,10 @@ from collections import OrderedDict
 
 main = Blueprint('main', __name__)
 
+@main.route("/")
+def home():
+    return "FlaskCarculator is running!"
+
 
 @main.route('/calculate-lca', methods=['POST'])
 def calculate_lca():
