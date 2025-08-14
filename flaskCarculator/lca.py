@@ -330,7 +330,7 @@ def initialize_model(params, nomenclature=None):
                     * 3600
                     / m["TtW energy, electric mode"]
             )
-            m.set_vehicle_masses()
+            #m.set_vehicle_masses()
             m.override_battery_capacity()
             m.calculate_ttw_energy()
             m.drop_hybrid()
