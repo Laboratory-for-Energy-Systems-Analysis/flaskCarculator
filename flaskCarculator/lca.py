@@ -340,6 +340,7 @@ def initialize_model(params, nomenclature=None):
 
     m = set_vehicle_properties_after_run(m, params)
 
+
     errors = validate_output_data(data=m, request=params)
 
     if errors:
