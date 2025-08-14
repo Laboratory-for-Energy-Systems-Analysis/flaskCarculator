@@ -11,27 +11,31 @@ url = "https://carculator-api-test.psi.ch/calculate-lca"
 
 # Create the data payload to send to the server
 data = {
-    "nomenclature": "tcs",
+    #"nomenclature": "tcs",
     "country_code": "CH",
+    "nomenclature": "ecoinvent",
     "vehicles": [
          {
              "id": "336773",
              "vehicle_type": "car",
-             "tsa": "E",
+
+             "powertrain": "BEV",
+             "size": "Small",
+             #"tsa": "E",
              "year": 2025,
-             "fzklasse": 30005,
-             "leer": 2780,
-             "nutz": 530,
-             "gesamt": 3310,
-             "kw": 0,
-             "kw_sl": 250,
-             "tank": 0,
-             "bat_cap":92,
-             "bat_typ": "NMC-622",
-             "bat_km_WLTP": 473,
-             "ver_strom": 20,
-             "direct_co2": 0,
-             "fuel_co2": 22
+             #"fzklasse": 30005,
+             #"leer": 2780,
+             #"nutz": 530,
+             #"gesamt": 3310,
+             #"kw": 0,
+             #"kw_sl": 250,
+             #"tank": 0,
+             #"bat_cap":92,
+             #"bat_typ": "NMC-622",
+             #"bat_km_WLTP": 473,
+             #"ver_strom": 20,
+             #"direct_co2": 0,
+             #"fuel_co2": 22
         },
         # {
         #      "id": "337604",
@@ -142,24 +146,7 @@ data = {
  #             "direct_co2": 0,
  #             "fuel_co2": 120
  #         },
-         {
-             "id": "PHEV001",
-             "vehicle_type": "car",
-             "year": 2025,
-             "tsa": "C1",
-             "fzklasse": 30003,
-             "leer": 1700,
-             "nutz": 400,
-             "gesamt": 2100,
-             "kw": 90,
-             "kw_sl": 160,
-             "tank": 40,
-             "bat_cap": 15,
-             "bat_typ": "NMC-811",
-             #"bat_km_WLTP": 50,
-             "ver_strom": 10,
-             "ver": 5.0,
-         }
+
     ],
 }
 

@@ -83,19 +83,75 @@ def format_results_for_tcs(data: xr.DataArray, params: dict, bafu: bool = False)
 
     return results
 
-def format_results_for_swisscargo(data: xr.DataArray) -> list:
+def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> list:
     """
     Format the results for SwissCargo.
     """
 
+    if bafu:
+        lca_results = data.bafu_results
+    else:
+        lca_results = data.results
+
+    for powertrain in data.array.coords["powertrain"].values:
+        for size in data.array.coords["size"].values:
+            for year in data.array.coords["year"].values:
+                fuel_consumption = data.array.sel(powertrain=powertrain, size=size, parameter="fuel consumption",
+                                                  year=year).values
+
+                electricity_consumption = data.array.sel(powertrain=powertrain, size=size,
+                                                         parameter="electricity consumption", year=year).values
+
+                if powertrain not in ("PHEV-p", "PHEV-d"):
+                    emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
+
+                    for impact, value in emission_factor.items():
+                        lca_results.loc[dict(
+                            powertrain=powertrain,
+                            size=size,
+                            year=year,
+                            impact_category=impact,
+                            impact="energy chain",
+                        )] = float((fuel_consumption * value) + (electricity_consumption * value))
+
+                else:
+                    electricity_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-e"]
+
+                    if powertrain == "PHEV-d":
+                        fuel_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-c-d"]
+                    else:
+                        fuel_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-c-p"]
+
+                    for impact, value in electricity_emission_factor.items():
+                        lca_results.loc[dict(
+                            powertrain=powertrain,
+                            size=size,
+                            year=year,
+                            impact_category=impact,
+                            impact="energy chain"
+                        )] = float(
+                            electricity_consumption * value
+                        )
+
+                    for impact, value in fuel_emission_factor.items():
+                        lca_results.loc[dict(
+                            powertrain=powertrain,
+                            size=size,
+                            year=year,
+                            impact_category=impact,
+                            impact="energy chain"
+                        )] += float(
+                            fuel_consumption * value
+                        )
+
     results = []
 
-    for impact_category in data.results.coords["impact_category"].values:
+    for impact_category in lca_results.coords["impact_category"].values:
         result = {"category": impact_category}
         result.update(
             {
-                i: data.results.sel(impact_category=impact_category, impact=i).sum().item()
-                for i in data.results.coords["impact"].values
+                i: lca_results.sel(impact_category=impact_category, impact=i).sum().item()
+                for i in lca_results.coords["impact"].values
             }
         )
         results.append(result)

@@ -402,13 +402,15 @@ def initialize_model(params, nomenclature=None):
         functional_unit=func_unit,
         background_configuration=electricity_mix
     )
-    results = m.inventory.calculate_impacts()
-    m.results = results.sel(value=0)
 
-    # if nomenclature = "tcs", we want also to provide results
+    if nomenclature not in ("swisscargo",):
+        results = m.inventory.calculate_impacts()
+        m.results = results.sel(value=0)
+
+    # if nomenclature = "tcs" or "swiss-cargo", we want also to provide results
     # using the BFU LCA database
 
-    if nomenclature == "tcs":
+    if nomenclature in ("tcs", "swisscargo"):
         df = load_bafu_emission_factors()
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
         m.inventory.results = None
@@ -438,6 +440,5 @@ def initialize_model(params, nomenclature=None):
     m.version = models[params["vehicle_type"]]["version"]
     m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
 
-    # m.inventory.export_lci(format="file", filename=f"lci_{params['id']}.xlsx")
 
     return m
