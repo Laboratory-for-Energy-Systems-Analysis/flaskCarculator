@@ -88,10 +88,7 @@ def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> lis
     Format the results for SwissCargo.
     """
 
-    if bafu:
-        lca_results = data.bafu_results
-    else:
-        lca_results = data.results
+    lca_results = data.bafu_results
 
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
