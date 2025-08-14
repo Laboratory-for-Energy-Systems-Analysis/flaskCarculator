@@ -119,6 +119,7 @@ def validate_input_data(data: dict) -> list:
 
     errors = []
 
+
     for v, vehicle in enumerate(data["vehicles"]):
         for field in required_fields:
             if field not in vehicle:
