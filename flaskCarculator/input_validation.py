@@ -115,6 +115,8 @@ def validate_input_data(data: dict) -> list:
         "electric utility factor (wltp)"
     ]
 
+
+
     errors = []
 
     for v, vehicle in enumerate(data["vehicles"]):
