@@ -445,6 +445,10 @@ def initialize_model(params, nomenclature=None):
                 m.inventory.B.loc[dict(activity=eval(name), category=category)] = factors.loc[factors["name"] == name, "score"].values.item(0)
 
         results = m.inventory.calculate_impacts()
+
+        if nomenclature == "swisscargo":
+            results = results.sel(category="climate change")
+
         m.bafu_results = results.sel(value=0)
 
     m.version = models[params["vehicle_type"]]["version"]
