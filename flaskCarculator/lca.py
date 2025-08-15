@@ -417,12 +417,20 @@ def initialize_model(params, nomenclature=None):
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
         m.inventory.results = None
 
-        for category in [
-            "climate change",
-            "energy resources: non-renewable",
-            "energy resources: renewable",
-            "total"
-        ]:
+        if nomenclature == "swisscargo":
+            categories = [
+                "climate change",
+            ]
+
+        else:
+            categories = [
+                "climate change",
+                "energy resources: non-renewable",
+                "energy resources: renewable",
+                "total"
+            ]
+
+        for category in categories:
             if category != "total":
                 factors = df.loc[
                     df["impact"] == category
