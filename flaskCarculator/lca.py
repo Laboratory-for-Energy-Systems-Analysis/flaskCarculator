@@ -451,6 +451,7 @@ def initialize_model(params, nomenclature=None):
 
         m.bafu_results = results.sel(value=0)
 
+
     m.version = models[params["vehicle_type"]]["version"]
     m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
 
