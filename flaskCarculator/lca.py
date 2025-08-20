@@ -141,7 +141,11 @@ def set_properties_for_plugin(model, params):
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
 
-    model.array.loc[dict(parameter="range")] = (
+    p = "range"
+    if "target range" in model.array.parameter.values:
+        p = "target range"
+
+    model.array.loc[dict(parameter=p)] = (
         model.array.loc[dict(parameter="electric energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, electric mode")]
     ) + (
         model.array.loc[dict(parameter="oxidation energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, combustion mode")]
@@ -410,7 +414,7 @@ def initialize_model(params, nomenclature=None):
     # if nomenclature = "tcs" or "swiss-cargo", we also want to provide results
     # using the BFU LCA database
 
-    if nomenclature in ("tcs", "swisscargo"):
+    if nomenclature in ("tcs", "swisscargo",):
         df = load_bafu_emission_factors()
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
         m.inventory.results = None
