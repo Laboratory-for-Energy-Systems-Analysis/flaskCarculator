@@ -340,8 +340,6 @@ def initialize_model(params, nomenclature=None):
 
     m = set_vehicle_properties_after_run(m, params)
 
-
-
     errors = validate_output_data(data=m, request=params)
 
     if errors:
@@ -442,7 +440,9 @@ def initialize_model(params, nomenclature=None):
                 factors = factors.groupby("name").sum(numeric_only=True).reset_index()
 
             for name in factors["name"].values:
-                m.inventory.B.loc[dict(activity=eval(name), category=category)] = factors.loc[factors["name"] == name, "score"].values.item(0)
+                val = factors.loc[factors["name"] == name, "score"].values.item(0)
+                print(f"Setting factor for {eval(name)} in category {category}: {val}")
+                m.inventory.B.loc[dict(activity=eval(name), category=category)] = val
 
         results = m.inventory.calculate_impacts()
 

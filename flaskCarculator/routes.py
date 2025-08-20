@@ -41,10 +41,9 @@ def calculate_lca():
                     bafu=True
                 )
             elif data.get("nomenclature") == "swisscargo":
-                #vehicle["results"] = format_results_for_swisscargo(
-                #    data=models[vehicle["id"]],
-                #)
-                vehicle["results"] = serialize_xarray(models[vehicle["id"]].bafu_results)
+                vehicle["results"] = format_results_for_swisscargo(
+                    data=models[vehicle["id"]],
+                )
 
             else:
                 vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
