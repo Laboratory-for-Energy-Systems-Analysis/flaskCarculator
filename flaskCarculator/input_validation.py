@@ -120,6 +120,8 @@ def validate_input_data(data: dict) -> list:
         "occasional charger",
         "electricity cost (daily charger)",
         "electricity cost (occasional charger)",
+        "share km occasional charger",
+        "trucks using daily charger",
     ]
 
 
