@@ -105,6 +105,11 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="cargo mass")] = params["cargo mass"]
         model.array.loc[dict(parameter="total cargo mass")] = params["cargo mass"]
 
+    model.array.loc[dict(parameter="TtW efficiency")] = model.array.loc[dict(parameter="TtW energy")] / (
+        (model.array.loc[dict(parameter="fuel consumption")] * 42600) +
+        (model.array.loc[dict(parameter="electricity consumption")] * 3600)
+    )
+
     return model
 
 def set_properties_for_plugin(model, params):
