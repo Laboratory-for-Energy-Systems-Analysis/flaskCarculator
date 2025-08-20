@@ -461,4 +461,4 @@ def initialize_model(params, nomenclature=None):
     m.ecoinvent_version = models[params["vehicle_type"]]["ecoinvent version"]
 
 
-    return m
+    return m, errors

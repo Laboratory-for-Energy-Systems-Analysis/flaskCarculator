@@ -26,7 +26,15 @@ def calculate_lca():
     if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    models = {vehicle["id"]: initialize_model(vehicle, data.get("nomenclature")) for vehicle in data["vehicles"]}
+    models = {}
+
+    for vehicle in data["vehicles"]:
+        model, errors = initialize_model(vehicle, data.get("nomenclature"))
+        models[vehicle["id"]] = model
+        if errors:
+            return jsonify({"error": "Output validation issues", "details": errors}), 500
+
+    # models = {vehicle["id"]: initialize_model(vehicle, data.get("nomenclature")) for vehicle in data["vehicles"]}
 
     try:
         for vehicle in data["vehicles"]:
