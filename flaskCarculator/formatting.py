@@ -93,23 +93,32 @@ def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> lis
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
             for year in data.array.coords["year"].values:
-                fuel_consumption = data.array.sel(powertrain=powertrain, size=size, parameter="fuel consumption",
-                                                  year=year).values
+                fuel_consumption = data.array.sel(
+                    powertrain=powertrain,
+                    size=size,
+                    parameter="fuel consumption",
+                    year=year
+                ).values
 
-                electricity_consumption = data.array.sel(powertrain=powertrain, size=size,
-                                                         parameter="electricity consumption", year=year).values
+                electricity_consumption = data.array.sel(
+                    powertrain=powertrain,
+                    size=size,
+                    parameter="electricity consumption",
+                    year=year
+                ).values
 
                 if powertrain not in ("PHEV-p", "PHEV-d"):
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
 
                     for impact, value in emission_factor.items():
-                        lca_results.loc[dict(
-                            powertrain=powertrain,
-                            size=size,
-                            year=year,
-                            impact_category=impact,
-                            impact="energy chain",
-                        )] = float((fuel_consumption * value) + (electricity_consumption * value))
+                        if impact == "climate change":
+                            lca_results.loc[dict(
+                                powertrain=powertrain,
+                                size=size,
+                                year=year,
+                                impact_category=impact,
+                                impact="energy chain",
+                            )] = float((fuel_consumption * value) + (electricity_consumption * value))
 
                 else:
                     electricity_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-e"]
@@ -120,26 +129,28 @@ def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> lis
                         fuel_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-c-p"]
 
                     for impact, value in electricity_emission_factor.items():
-                        lca_results.loc[dict(
-                            powertrain=powertrain,
-                            size=size,
-                            year=year,
-                            impact_category=impact,
-                            impact="energy chain"
-                        )] = float(
-                            electricity_consumption * value
-                        )
+                        if impact == "climate change":
+                            lca_results.loc[dict(
+                                powertrain=powertrain,
+                                size=size,
+                                year=year,
+                                impact_category=impact,
+                                impact="energy chain"
+                            )] = float(
+                                electricity_consumption * value
+                            )
 
                     for impact, value in fuel_emission_factor.items():
-                        lca_results.loc[dict(
-                            powertrain=powertrain,
-                            size=size,
-                            year=year,
-                            impact_category=impact,
-                            impact="energy chain"
-                        )] += float(
-                            fuel_consumption * value
-                        )
+                        if impact == "climate change":
+                            lca_results.loc[dict(
+                                powertrain=powertrain,
+                                size=size,
+                                year=year,
+                                impact_category=impact,
+                                impact="energy chain"
+                            )] += float(
+                                fuel_consumption * value
+                            )
 
     results = []
 
