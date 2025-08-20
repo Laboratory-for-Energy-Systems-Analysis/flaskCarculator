@@ -409,7 +409,7 @@ def initialize_model(params, nomenclature=None):
         results = m.inventory.calculate_impacts()
         m.results = results.sel(value=0)
 
-    # if nomenclature = "tcs" or "swiss-cargo", we want also to provide results
+    # if nomenclature = "tcs" or "swiss-cargo", we also want to provide results
     # using the BFU LCA database
 
     if nomenclature in ("tcs", "swisscargo"):
@@ -447,7 +447,7 @@ def initialize_model(params, nomenclature=None):
         results = m.inventory.calculate_impacts()
 
         if nomenclature == "swisscargo":
-            results = results.sel(impact="climate change")
+            results = results.sel(impact_category="climate change")
 
         m.bafu_results = results.sel(value=0)
 
