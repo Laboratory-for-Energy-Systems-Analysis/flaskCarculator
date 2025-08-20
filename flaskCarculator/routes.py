@@ -44,7 +44,7 @@ def calculate_lca():
                 #vehicle["results"] = format_results_for_swisscargo(
                 #    data=models[vehicle["id"]],
                 #)
-                vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
+                vehicle["results"] = serialize_xarray(models[vehicle["id"]].bafu_results)
 
             else:
                 vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
