@@ -402,6 +402,10 @@ def initialize_model(params, nomenclature=None):
             electricity_mix[technology_indices[params["electricity"]]] = 1
             electricity_mix = {"custom electricity mix": [electricity_mix]}
 
+
+    print(m.array.coords)
+    print(m.array)
+
     m.inventory = inventory(
         m,
         method=method,
