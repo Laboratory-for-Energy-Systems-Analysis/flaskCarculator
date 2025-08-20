@@ -113,6 +113,13 @@ def validate_input_data(data: dict) -> list:
         "direct_co2",
         "fuel_co2",
         "electric utility factor (wltp)"
+        # Swisscargo nomenclature
+        "interest rate",
+        "fuel cost",
+        "daily charger",
+        "occasional charger",
+        "electricity cost (daily charger)",
+        "electricity cost (occasional charger)",
     ]
 
 

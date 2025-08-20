@@ -28,6 +28,9 @@ def calculate_lca():
 
     models = {}
 
+    from pprint import pprint
+    pprint(data)
+
     for vehicle in data["vehicles"]:
         model, errors = initialize_model(vehicle, data.get("nomenclature"))
         models[vehicle["id"]] = model
