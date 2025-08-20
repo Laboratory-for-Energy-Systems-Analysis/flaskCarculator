@@ -136,7 +136,7 @@ def set_properties_for_plugin(model, params):
     if "driving mass" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
 
-    model.set_vehicle_mass()
+    model.set_vehicle_masses()
     model.set_component_masses()
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
@@ -441,12 +441,11 @@ def initialize_model(params, nomenclature=None):
 
             for name in factors["name"].values:
                 val = factors.loc[factors["name"] == name, "score"].values.item(0)
-                print(f"Setting factor for {eval(name)} in category {category}: {val}")
                 m.inventory.B.loc[dict(activity=eval(name), category=category)] = val
 
         results = m.inventory.calculate_impacts()
 
-        print(results)
+        print(results.sel(value=0))
 
         if nomenclature == "swisscargo":
             results = results.sel(impact_category=["climate change",])
