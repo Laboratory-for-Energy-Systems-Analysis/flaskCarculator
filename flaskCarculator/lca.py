@@ -140,6 +140,8 @@ def set_properties_for_plugin(model, params):
     model.set_component_masses()
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
+    if "curb mass" in params:
+        model["curb mass"] = params["curb mass"]
 
     p = "range"
     if "target range" in model.array.parameter.values:

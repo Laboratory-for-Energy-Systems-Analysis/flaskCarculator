@@ -27,7 +27,12 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
         "TtW energy",
         "fuel consumption",
         "electricity consumption",
-        "range"
+        "range",
+        "target range",
+        "lifetime kilometers",
+        "kilometers per year",
+        "average passengers",
+        "electric energy stored",
     ]
 
     shown_error_fields = [
