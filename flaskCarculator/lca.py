@@ -348,9 +348,6 @@ def initialize_model(params, nomenclature=None):
 
     errors = validate_output_data(data=m, request=params)
 
-    if errors:
-        raise ValueError(f"Validation failed: {errors}")
-
     inventory = models[params["vehicle_type"]]["inventory"]
 
     func_unit = "vkm"
