@@ -449,8 +449,6 @@ def initialize_model(params, nomenclature=None):
 
         results = m.inventory.calculate_impacts()
 
-        print(results.sel(value=0))
-
         if nomenclature == "swisscargo":
             results = results.sel(impact_category=["climate change",])
 
