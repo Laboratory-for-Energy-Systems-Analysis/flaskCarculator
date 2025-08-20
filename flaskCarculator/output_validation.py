@@ -112,8 +112,12 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
                               f"{d}")
 
     # check that available payload is still positive
-    if "available payload" in data.array.coords['parameter'].values:
-        if any(data.array.sel(parameter="available payload", value=0, powertrain=request["powertrain"]) < 0):
+    if "gross mass" in data.array.coords['parameter'].values:
+        # check if any value for driving mass is superior to gross mass
+        if (
+                data.array.sel(parameter="driving mass", value=0, powertrain=request["powertrain"])
+                > data.array.sel(parameter="gross mass", value=0, powertrain=request["powertrain"])
+        ):
             errors.append(f"Vehicle {request['id']} has negative available payload for powertrain {request['powertrain']}.")
 
     return errors
