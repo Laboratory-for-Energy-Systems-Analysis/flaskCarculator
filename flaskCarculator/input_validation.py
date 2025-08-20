@@ -196,6 +196,7 @@ def validate_input_data(data: dict) -> list:
         elif "TtW energy" in vehicle and vehicle["TtW energy"] <= 0:
             errors.append(f"Vehicle {v}: TtW energy must be greater than 0.")
 
+
     return errors
 
 def calculate_utility_factor(ev_range):
