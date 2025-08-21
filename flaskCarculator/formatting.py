@@ -83,12 +83,14 @@ def format_results_for_tcs(data: xr.DataArray, params: dict, bafu: bool = False)
 
     return results
 
-def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> list:
+def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     """
     Format the results for SwissCargo.
     """
 
     lca_results = data.bafu_results
+
+    has_grid_electricity = params.get("electricity", "grid") == "grid"
 
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
@@ -108,6 +110,11 @@ def format_results_for_swisscargo(data: xr.DataArray, bafu: bool = False) -> lis
                 ).values
 
                 if powertrain not in ("PHEV-p", "PHEV-d"):
+
+                    if has_grid_electricity is False and powertrain == "BEV":
+                        # it's non-standard electricity, so we let it be
+                        continue
+
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
 
                     for impact_cat, value in emission_factor.items():
