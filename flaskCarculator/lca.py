@@ -104,6 +104,14 @@ def set_vehicle_properties_after_run(model, params):
                  / 100
          ) * (fuel_specs["lhv"] * 1000)
 
+        # update fuel mass, which is the volume of fuel
+        # consumed per kilometer times the range
+        # times the density of the fuel
+        model.array.loc[dict(parameter="fuel mass")] = (
+            model.array.loc[dict(parameter="fuel consumption")] # L/km
+            * fuel_specs["density"]  # kg/L
+            * model.array.loc[dict(parameter="range")]
+        )
 
     if params.get("electricity consumption", 0) > 0:
         model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100
@@ -112,6 +120,31 @@ def set_vehicle_properties_after_run(model, params):
 
     if params.get("range", 0) > 0:
         model.array.loc[dict(parameter="range")] = params["range"]
+        if params.get("electricity consumption", 0) > 0:
+            # resize battery capacity based on range and TtW energy
+            model.array.loc[dict(parameter="electric energy stored")] = (
+                params["range"] # km
+                * (params["electricity consumption"] / 100) # kWh/km
+                / model.array.loc[dict(parameter="battery DoD")] # kWh
+            )
+
+            model.array.loc[
+                dict(
+                    parameter="energy battery mass",
+                )
+            ] = (
+                    model.array.loc[dict(parameter="electric energy stored")]
+                    / model.array.loc[
+                        dict(
+                            parameter="battery cell energy density",
+                        )
+                    ]
+                    / model.array.loc[
+                        dict(
+                            parameter="battery cell mass share",
+                        )
+                    ]
+            )
 
     if params.get("cargo mass", None):
         model.array.loc[dict(parameter="cargo mass")] = params["cargo mass"]
@@ -441,7 +474,6 @@ def initialize_model(params, nomenclature=None):
             categories = [
                 "climate change",
             ]
-
 
         else:
             categories = [
