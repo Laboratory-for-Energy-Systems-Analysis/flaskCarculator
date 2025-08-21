@@ -407,6 +407,7 @@ def initialize_model(params, nomenclature=None):
     print(m.array)
 
 
+
     m.inventory = inventory(
         m,
         method=method,
