@@ -92,6 +92,8 @@ def set_vehicle_properties_after_run(model, params):
     if params.get("TtW energy", 0) > 0:
         model.array.loc[dict(parameter="TtW energy")] = params["TtW energy"]
 
+    range_var = "target range" if "target range" in model.array.parameter.values else "range"
+
     if params.get("fuel consumption", 0) > 0:
         model.array.loc[dict(parameter="fuel consumption")] = params["fuel consumption"] / 100
         model.array.loc[dict(parameter="TtW energy, combustion mode")] = (
@@ -110,7 +112,7 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="fuel mass")] = (
             model.array.loc[dict(parameter="fuel consumption")] # L/km
             * fuel_specs["density"]  # kg/L
-            * model.array.loc[dict(parameter="range")]
+            * model.array.loc[dict(parameter=range_var)]
         )
 
     if params.get("electricity consumption", 0) > 0:
@@ -118,7 +120,7 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
         model.array.loc[dict(parameter="TtW energy")] = params["electricity consumption"] / 100 * 3600
 
-    range_var = "target range" if "target range" in model.array.parameter.values else "range"
+
     if params.get("range", 0) > 0 or params.get("target_range", 0) > 0:
         model.array.loc[dict(parameter=range_var)] = params["range"] if "range" in params else params["target_range"]
         if params.get("electricity consumption", 0) > 0:
