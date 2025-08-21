@@ -84,6 +84,8 @@ def set_vehicle_properties_after_run(model, params):
     Sets various properties of the vehicle model based on the provided parameters.
     """
 
+    fuel_specs = FUEL_SPECS[params["powertrain"]]
+
     if params.get("driving mass", 0) > 0:
         model.array.loc[dict(parameter="driving mass")] = params["driving mass"]
 
@@ -92,11 +94,21 @@ def set_vehicle_properties_after_run(model, params):
 
     if params.get("fuel consumption", 0) > 0:
         model.array.loc[dict(parameter="fuel consumption")] = params["fuel consumption"] / 100
-        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (params["fuel consumption"] / 100) * 42600
+        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (
+            params["fuel consumption"]
+            / 100
+        ) * (fuel_specs["lhv"] * 1000)
+
+        model.array.loc[dict(parameter="TtW energy")] = (
+                 params["fuel consumption"]
+                 / 100
+         ) * (fuel_specs["lhv"] * 1000)
+
 
     if params.get("electricity consumption", 0) > 0:
         model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100
         model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
+        model.array.loc[dict(parameter="TtW energy")] = params["electricity consumption"] / 100 * 3600
 
     if params.get("range", 0) > 0:
         model.array.loc[dict(parameter="range")] = params["range"]
@@ -438,8 +450,6 @@ def initialize_model(params, nomenclature=None):
                 "energy resources: renewable",
                 "total"
             ]
-
-
 
         for category in categories:
             if category != "total":

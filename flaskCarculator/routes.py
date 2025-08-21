@@ -37,8 +37,6 @@ def calculate_lca():
         if errors:
             return jsonify({"error": "Output validation issues", "details": errors}), 500
 
-    # models = {vehicle["id"]: initialize_model(vehicle, data.get("nomenclature")) for vehicle in data["vehicles"]}
-
     try:
         for vehicle in data["vehicles"]:
             if data.get("nomenclature") == "tcs":
