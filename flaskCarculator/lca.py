@@ -446,6 +446,7 @@ def initialize_model(params, nomenclature=None):
             ]
 
 
+
         for category in categories:
             if category != "total":
                 factors = df.loc[
