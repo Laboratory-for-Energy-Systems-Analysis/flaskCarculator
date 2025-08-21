@@ -365,7 +365,8 @@ def initialize_model(params, nomenclature=None):
 
     method = "recipe"
     if "method" in params:
-        method = params["method"]
+        if nomenclature not in ("swisscargo", "tcs"):
+            method = params["method"]
 
     indicator = "midpoint"
     if "indicator" in params:
