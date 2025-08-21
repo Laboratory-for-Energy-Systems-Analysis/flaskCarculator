@@ -22,3 +22,6 @@ ICEV-g:
 FCEV:
   density: 1
   lhv: 0.01348617667
+BEV:
+  density: 1
+  lhv: 3.6
