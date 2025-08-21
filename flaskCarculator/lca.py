@@ -408,6 +408,7 @@ def initialize_model(params, nomenclature=None):
 
 
 
+
     m.inventory = inventory(
         m,
         method=method,
