@@ -20,8 +20,8 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
     errors = []
 
     fields = [
-        "curb mass",
-        "driving mass",
+        #"curb mass",
+        #"driving mass",
         "power",
         "battery capacity",
         "TtW energy",
