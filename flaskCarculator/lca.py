@@ -436,6 +436,7 @@ def initialize_model(params, nomenclature=None):
                 "climate change",
             ]
 
+
         else:
             categories = [
                 "climate change",
