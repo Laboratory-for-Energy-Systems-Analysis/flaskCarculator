@@ -32,7 +32,7 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
         "lifetime kilometers",
         "kilometers per year",
         "average passengers",
-        "electric energy stored",
+        #"electric energy stored",
     ]
 
     shown_error_fields = [
