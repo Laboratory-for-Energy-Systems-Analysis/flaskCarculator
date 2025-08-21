@@ -96,24 +96,45 @@ def set_vehicle_properties_after_run(model, params):
 
     if params.get("fuel consumption", 0) > 0:
         model.array.loc[dict(parameter="fuel consumption")] = params["fuel consumption"] / 100
-        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (
-            params["fuel consumption"]
-            / 100
-        ) * (fuel_specs["lhv"] * 1000)
 
-        model.array.loc[dict(parameter="TtW energy")] = (
-                 params["fuel consumption"]
-                 / 100
-         ) * (fuel_specs["lhv"] * 1000)
+        if params["powertrain"] != "FCEV":
+            model.array.loc[dict(parameter="TtW energy, combustion mode")] = (
+                                                                                     params["fuel consumption"]
+                                                                                     / 100
+                                                                             ) * (fuel_specs["lhv"] * 1000)
 
-        # update fuel mass, which is the volume of fuel
-        # consumed per kilometer times the range
-        # times the density of the fuel
-        model.array.loc[dict(parameter="fuel mass")] = (
-            model.array.loc[dict(parameter="fuel consumption")] # L/km
-            * fuel_specs["density"]  # kg/L
-            * model.array.loc[dict(parameter=range_var)]
-        )
+            model.array.loc[dict(parameter="TtW energy")] = (
+                                                                    params["fuel consumption"]
+                                                                    / 100
+                                                            ) * (fuel_specs["lhv"] * 1000)
+            # update fuel mass, which is the volume of fuel
+            # consumed per kilometer times the range
+            # times the density of the fuel
+            model.array.loc[dict(parameter="fuel mass")] = (
+                    model.array.loc[dict(parameter="fuel consumption")]  # L/km
+                    * fuel_specs["density"]  # kg/L
+                    * model.array.loc[dict(parameter=range_var)]
+            )
+
+        else:
+            model.array.loc[dict(parameter="TtW energy, electric mode")] = (
+                                                                                     params["fuel consumption"]
+                                                                                     / 100
+                                                                             ) * 120000  # 120 MJ/kg for hydrogen
+
+            model.array.loc[dict(parameter="TtW energy")] = (
+                                                                    params["fuel consumption"]
+                                                                    / 100
+                                                            ) * 120000  # 120 MJ/kg for hydrogen
+
+            # update fuel mass, which is the mass of hydrogen
+            # consumed per kilometer times the range
+            # times the density of the fuel
+            model.array.loc[dict(parameter="fuel mass")] = (
+                    model.array.loc[dict(parameter="fuel consumption")]  # kg/km
+                    * model.array.loc[dict(parameter=range_var)]
+            )
+
 
     if params.get("electricity consumption", 0) > 0:
         model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100

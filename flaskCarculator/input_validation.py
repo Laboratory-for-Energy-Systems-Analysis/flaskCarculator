@@ -10,6 +10,7 @@ from .data.mapping import (
     TCS_PARAMETERS,
     TCS_POWERTRAIN,
     SWISSCARGO_SIZE,
+    SWISSCARGO_PARAMETERS,
     FUEL_SPECS,
     CAR_POWERTRAINS,
     CAR_SIZES,
@@ -122,6 +123,8 @@ def validate_input_data(data: dict) -> list:
         "electricity cost (occasional charger)",
         "share km occasional charger",
         "trucks using daily charger",
+        "hydrogen consumption",
+        "hydrogen cost"
     ]
 
 
@@ -259,10 +262,28 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
     :return: translated data
     """
 
+    translated_data = []
+
     for vehicle in data["vehicles"]:
+        new_vehicle = {}
+
         if "size" in vehicle:
             if vehicle["size"] in SWISSCARGO_SIZE:
-                vehicle["size"] = SWISSCARGO_SIZE[vehicle["size"]]
+                new_vehicle["size"] = SWISSCARGO_SIZE[vehicle["size"]]
+
+        for k, v in SWISSCARGO_PARAMETERS.items():
+            if k in vehicle:
+                new_vehicle[v] = vehicle[k]
+
+        # add other entries not in the mapping
+        for k, v in vehicle.items():
+            if k not in SWISSCARGO_PARAMETERS:
+                if k not in new_vehicle:
+                    new_vehicle[k] = v
+
+        translated_data.append(new_vehicle)
+
+    data["vehicles"] = translated_data
 
     return data
 

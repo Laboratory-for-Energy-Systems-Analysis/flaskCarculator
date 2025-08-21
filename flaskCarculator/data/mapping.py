@@ -16,6 +16,7 @@ def load_yaml(file_name: str) -> dict:
 
 TCS_FUEL_BLEND = load_yaml("tcs_fuel_blend.yaml")
 TCS_PARAMETERS = load_yaml("tcs_parameters_mapping.yaml")
+SWISSCARGO_PARAMETERS = load_yaml("swisscargo_parameters_mapping.yaml")
 TCS_POWERTRAIN = load_yaml("tcs_powertrain_mapping.yaml")
 TCS_SIZE = load_yaml("tcs_size_mapping.yaml")
 SWISSCARGO_SIZE = load_yaml("swisscargo_size_mapping.yaml")
