@@ -428,6 +428,7 @@ def initialize_model(params, nomenclature=None):
     if nomenclature in ("tcs", "swisscargo",):
         df = load_bafu_emission_factors()
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
+        print(m.inventory.B.coords)
         m.inventory.results = None
 
         if nomenclature == "swisscargo":
