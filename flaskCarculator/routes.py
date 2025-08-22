@@ -104,6 +104,7 @@ def calculate_lca():
                 "combustion engine mass",
                 "electric engine mass",
                 "powertrain mass",
+                "exhaust system mass",
                 "fuel cell stack mass",
                 "fuel cell ancillary BoP mass",
                 "fuel cell essential BoP mass",
@@ -127,6 +128,7 @@ def calculate_lca():
                     if not np.isfinite(val):  # Detects NaN, inf, -inf
                         val = 0.0
                     vehicle[p] = val
+
 
 
             vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
