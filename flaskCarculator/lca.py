@@ -148,7 +148,7 @@ def set_vehicle_properties_after_run(model, params):
             model.array.loc[dict(parameter=range_var)] = (
                     model.array.loc[dict(parameter="electric energy stored")]
                     / model.array.loc[dict(parameter="electricity consumption")]
-            ) * (1 - model.array.loc[dict(parameter="battery DoD")])
+            ) * model.array.loc[dict(parameter="battery DoD")]
 
 
     if params.get("cargo mass", None):
