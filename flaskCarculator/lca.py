@@ -179,6 +179,9 @@ def set_vehicle_properties_after_run(model, params):
         (model.array.loc[dict(parameter="electricity consumption")] * 3600)
     )
 
+    if "battery lifetime replacement" in params:
+        model.array.loc[dict(parameter="battery lifetime replacements")] = params["battery lifetime replacement"]
+
     return model
 
 def set_properties_for_plugin(model, params):
