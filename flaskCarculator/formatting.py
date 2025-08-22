@@ -91,6 +91,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     lca_results = data.bafu_results
 
     has_grid_electricity = params.get("electricity", "grid") == "grid"
+    has_average_h2 = params.get("hydrogen", "hydrogen - electrolysis - PEM") == "hydrogen - electrolysis - PEM"
 
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
@@ -113,6 +114,10 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
                     if has_grid_electricity is False and powertrain == "BEV":
                         # it's non-standard electricity, so we let it be
+                        continue
+
+                    if has_average_h2 is False and powertrain == "FCEV":
+                        # it's non-standard hydrogen, so we let it be
                         continue
 
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
