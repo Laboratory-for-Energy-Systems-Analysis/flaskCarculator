@@ -119,6 +119,7 @@ def calculate_lca():
 
 
             for p in default_vehicle_parameters:
+                print(p)
                 if p in models[vehicle["id"]].array.parameter.values:
                     if p in ("fuel consumption", "electricity consumption"):
                         p *= 100 # Convert /km to /100km
@@ -148,7 +149,8 @@ def calculate_lca():
             return response
 
     except Exception as e:
-        print(data)
+        from pprint import pprint
+        pprint(data)
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
 
