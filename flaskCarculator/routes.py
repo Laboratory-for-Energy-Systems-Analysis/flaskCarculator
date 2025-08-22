@@ -119,11 +119,11 @@ def calculate_lca():
 
 
             for p in default_vehicle_parameters:
-                print(p)
                 if p in models[vehicle["id"]].array.parameter.values:
                     if p in ("fuel consumption", "electricity consumption"):
-                        p *= 100 # Convert /km to /100km
-                    val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
+                        val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item() * 100  # Convert to per 100 km
+                    else:
+                        val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
                     if not np.isfinite(val):  # Detects NaN, inf, -inf
                         val = 0.0
                     vehicle[p] = val
