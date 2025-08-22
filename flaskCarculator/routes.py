@@ -114,6 +114,8 @@ def calculate_lca():
 
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
+                    if p in ("fuel consumption", "electricity consumption"):
+                        p *= 100 # Convert /km to /100km
                     val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
                     if not np.isfinite(val):  # Detects NaN, inf, -inf
                         val = 0.0
@@ -128,6 +130,8 @@ def calculate_lca():
             vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
             vehicle["carculator version"] = ".".join(map(str, models[vehicle["id"]].version))
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
+            vehicle["country"] = data["country_code"]
+
 
         # Clean up memory after the response is sent
         @after_this_request
