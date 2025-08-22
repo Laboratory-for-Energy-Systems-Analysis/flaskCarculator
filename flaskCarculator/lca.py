@@ -76,6 +76,15 @@ def set_vehicle_properties_before_run(model, params):
         fuel_density = FUEL_SPECS[params["powertrain"]]["density"]
         model.array.loc[dict(parameter="fuel mass")] = params["fuel tank volume"] * fuel_density
 
+
+    if params.get("curb mass", 0) > 0:
+        model.array.loc[dict(parameter="glider base mass")] = np.clip(
+            model.array.loc[dict(parameter="glider base mass")],
+            0,
+            params.get("curb mass", 0)
+        )
+
+
     return model
 
 
@@ -200,8 +209,8 @@ def set_properties_for_plugin(model, params):
     if "electric energy stored" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electric energy stored")] = params["electric energy stored"]
 
-    #if "curb mass" in params and "powertrain" in params:
-    #    model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
+    if "curb mass" in params and "powertrain" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
 
     if "primary power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="combustion power")] = params["primary power"]
