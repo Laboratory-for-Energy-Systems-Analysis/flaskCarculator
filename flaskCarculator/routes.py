@@ -88,6 +88,7 @@ def calculate_lca():
                 "fuel cell lifetime replacements",
                 "oxidation energy stored",
                 "glider base mass",
+                "lightweighting",
                 "suspension mass",
                 "braking system mass",
                 "wheels and tires mass",
