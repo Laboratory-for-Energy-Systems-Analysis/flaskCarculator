@@ -88,6 +88,7 @@ def calculate_lca():
                 "fuel cell lifetime replacements",
                 "oxidation energy stored",
                 "glider base mass",
+                "transmission mass",
                 "fuel mass",
                 "charger mass",
                 "converter mass",
@@ -108,6 +109,7 @@ def calculate_lca():
                 "total cargo mass",
                 "driving mass"
             ]
+
 
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
