@@ -118,7 +118,6 @@ def calculate_lca():
                 "gross mass",
             ]
 
-
             for p in default_vehicle_parameters:
                 if p in models[vehicle["id"]].array.parameter.values:
                     if p in ("fuel consumption", "electricity consumption"):
