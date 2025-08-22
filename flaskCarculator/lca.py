@@ -153,31 +153,7 @@ def set_vehicle_properties_after_run(model, params):
 
     if params.get("range", 0) > 0 or params.get("target_range", 0) > 0:
         model.array.loc[dict(parameter=range_var)] = params["range"] if "range" in params else params["target_range"]
-        if params.get("electricity consumption", 0) > 0:
-            # resize battery capacity based on range and TtW energy
-            model.array.loc[dict(parameter="electric energy stored")] = (
-                params["range"] if "range" in params else params["target_range"]# km
-                * (params["electricity consumption"] / 100) # kWh/km
-                / model.array.loc[dict(parameter="battery DoD")] # kWh
-            )
 
-            model.array.loc[
-                dict(
-                    parameter="energy battery mass",
-                )
-            ] = (
-                    model.array.loc[dict(parameter="electric energy stored")]
-                    / model.array.loc[
-                        dict(
-                            parameter="battery cell energy density",
-                        )
-                    ]
-                    / model.array.loc[
-                        dict(
-                            parameter="battery cell mass share",
-                        )
-                    ]
-            )
 
     if params.get("cargo mass", None):
         model.array.loc[dict(parameter="cargo mass")] = params["cargo mass"]

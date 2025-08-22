@@ -101,6 +101,7 @@ def calculate_lca():
                 "fuel cell essential BoP mass",
                 "battery cell mass",
                 "battery BoP mass",
+                "energy battery mass",
                 "fuel tank mass",
                 "curb mass",
                 "cargo mass",
