@@ -88,12 +88,12 @@ def calculate_lca():
                 "fuel cell lifetime replacements",
                 "oxidation energy stored",
                 "glider base mass",
-                #"suspension mass",
-                #"braking system mass",
-                #"wheels and tires mass",
-                #"cabin mass",
-                #"electrical system mass",
-                #"other components mass",
+                "suspension mass",
+                "braking system mass",
+                "wheels and tires mass",
+                "cabin mass",
+                "electrical system mass",
+                "other components mass",
                 "transmission mass",
                 "fuel mass",
                 "charger mass",
@@ -148,10 +148,10 @@ def calculate_lca():
             return response
 
     except Exception as e:
+        print(data)
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
 
-    print(data)
 
     return Response(
         json.dumps(data, indent=2, sort_keys=False),  # Serialize using the ordered structure
