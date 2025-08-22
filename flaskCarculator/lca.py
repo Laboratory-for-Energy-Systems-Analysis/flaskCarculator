@@ -77,14 +77,6 @@ def set_vehicle_properties_before_run(model, params):
         model.array.loc[dict(parameter="fuel mass")] = params["fuel tank volume"] * fuel_density
 
 
-    if params.get("curb mass", 0) > 0:
-        model.array.loc[dict(parameter="glider base mass")] = np.clip(
-            model.array.loc[dict(parameter="glider base mass")],
-            0,
-            params.get("curb mass", 0)
-        )
-
-
     return model
 
 
@@ -200,10 +192,10 @@ def set_properties_for_plugin(model, params):
 
     model.set_vehicle_masses()
     model.set_component_masses()
-    if "driving mass" in params:
-        model["driving mass"] = params["driving mass"]
-    if "curb mass" in params:
-        model["curb mass"] = params["curb mass"]
+    #if "driving mass" in params:
+    #    model["driving mass"] = params["driving mass"]
+    #if "curb mass" in params:
+    #    model["curb mass"] = params["curb mass"]
 
     p = "range"
     if "target range" in model.array.parameter.values:
