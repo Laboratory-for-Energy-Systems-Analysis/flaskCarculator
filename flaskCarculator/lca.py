@@ -142,9 +142,13 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
         model.array.loc[dict(parameter="TtW energy")] = params["electricity consumption"] / 100 * 3600
 
-
-    if params.get("range", 0) > 0 or params.get("target_range", 0) > 0:
-        model.array.loc[dict(parameter=range_var)] = params["range"] if "range" in params else params["target_range"]
+        # update range, which is the electric energy stored
+        # divided by the electricity consumption per km
+        if "electric energy stored" in model.array.parameter.values:
+            model.array.loc[dict(parameter=range_var)] = (
+                    model.array.loc[dict(parameter="electric energy stored")]
+                    / model.array.loc[dict(parameter="electricity consumption")]
+            ) * (1 - model.array.loc[dict(parameter="battery DoD")])
 
 
     if params.get("cargo mass", None):
