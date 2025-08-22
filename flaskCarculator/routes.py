@@ -107,7 +107,8 @@ def calculate_lca():
                 "curb mass",
                 "cargo mass",
                 "total cargo mass",
-                "driving mass"
+                "driving mass",
+                "gross mass",
             ]
 
 
