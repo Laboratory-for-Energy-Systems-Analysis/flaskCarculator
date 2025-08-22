@@ -116,8 +116,6 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                         # it's non-standard electricity, so we let it be
                         continue
 
-
-
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
 
                     if has_average_h2 is False and powertrain == "FCEV":

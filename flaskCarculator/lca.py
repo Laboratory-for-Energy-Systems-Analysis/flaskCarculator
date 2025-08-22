@@ -200,8 +200,8 @@ def set_properties_for_plugin(model, params):
     if "electric energy stored" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electric energy stored")] = params["electric energy stored"]
 
-    if "curb mass" in params and "powertrain" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
+    #if "curb mass" in params and "powertrain" in params:
+    #    model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
 
     if "primary power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="combustion power")] = params["primary power"]
