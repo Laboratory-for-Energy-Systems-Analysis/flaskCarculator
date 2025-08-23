@@ -97,7 +97,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
     if "func_unit" in params:
         if params["func_unit"] == "tkm":
-            factor = 1 / data.array.sel(parameter="cargo mass").values.item() / 1000
+            factor = 1 / (data.array.sel(parameter="cargo mass").values.item() / 1000)
 
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
