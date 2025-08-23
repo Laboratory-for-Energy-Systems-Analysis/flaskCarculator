@@ -427,7 +427,8 @@ def initialize_model(params, nomenclature=None):
             if params.get("range", 0) > 0:
                 m.array.loc[dict(parameter="range")] = params["range"]
 
-    m = set_vehicle_properties_after_run(m, params)
+    if params["powertrain"] not in ["PHEV-d", "PHEV-p"]:
+        m = set_vehicle_properties_after_run(m, params)
 
     errors = validate_output_data(data=m, request=params)
 
