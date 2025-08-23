@@ -236,7 +236,7 @@ def set_properties_for_plugin(model, params):
         model.array.loc[dict(parameter="oxidation energy stored")]
         / (
              model.array.loc[dict(parameter="fuel consumption")]
-            * FUEL_SPECS[params["powertrain"]]["lhv"] * 1000
+            * FUEL_SPECS[params["powertrain"]]["lhv"] / 3.6
         )
     )
 
