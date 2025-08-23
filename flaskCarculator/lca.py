@@ -174,7 +174,11 @@ def set_properties_for_plugin(model, params):
     """
     if "electricity consumption" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, electric mode")] = (
+            model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")]
+            / model.array.loc[dict(powertrain=params["powertrain"], parameter="electric utility factor")]
+        ) * 3600
+
     if "fuel consumption" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")] = params["fuel consumption"] / 100
         fuel_specs = FUEL_SPECS[params["powertrain"]]
@@ -222,9 +226,14 @@ def set_properties_for_plugin(model, params):
         p = "target range"
 
     model.array.loc[dict(parameter=p)] = (
-        model.array.loc[dict(parameter="electric energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, electric mode")]
+        model.array.loc[dict(parameter="electric energy stored")]
+        / model.array.loc[dict(parameter="electricity consumption")]
     ) + (
-        model.array.loc[dict(parameter="oxidation energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, combustion mode")]
+        model.array.loc[dict(parameter="oxidation energy stored")]
+        / (
+             model.array.loc[dict(parameter="fuel consumption")]
+            * FUEL_SPECS[params["powertrain"]]["lhv"] * 1000
+        )
     )
 
     return model
