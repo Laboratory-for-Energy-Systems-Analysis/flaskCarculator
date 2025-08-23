@@ -207,7 +207,7 @@ def set_properties_for_plugin(model, params):
         model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
 
     model.array.loc[dict(powertrain=params["powertrain"], parameter="electric engine mass")] = (
-           model.array.loc[dict(powertrain=params["powertrain"], parameter="electric powers")]
+           model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")]
            * model.array.loc[dict(powertrain=params["powertrain"], parameter="electric mass per power")]
            + model.array.loc[dict(powertrain=params["powertrain"], parameter="electric fixed mass")]
    )
