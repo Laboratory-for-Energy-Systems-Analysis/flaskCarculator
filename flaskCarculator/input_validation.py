@@ -125,6 +125,7 @@ def validate_input_data(data: dict) -> list:
         "share km occasional charger",
         "trucks using daily charger",
         "hydrogen consumption",
+        "CNG consumption",
         "hydrogen cost",
         "canton",
         "vehicle purchase",
