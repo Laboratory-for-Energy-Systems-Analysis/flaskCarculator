@@ -93,6 +93,12 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     has_grid_electricity = params.get("electricity", "grid") == "grid"
     has_average_h2 = params.get("hydrogen", "hydrogen - electrolysis - PEM") == "hydrogen - electrolysis - PEM"
 
+    factor = 1
+
+    if "func_unit" in params:
+        if params["func_unit"] == "tkm":
+            factor = 1 / data.array.sel(parameter="cargo mass").values.item() / 1000
+
     for powertrain in data.array.coords["powertrain"].values:
         for size in data.array.coords["size"].values:
             for year in data.array.coords["year"].values:
@@ -130,7 +136,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                                 year=year,
                                 impact_category=impact_cat,
                                 impact="energy chain",
-                            )] = float((fuel_consumption * value) + (electricity_consumption * value))
+                            )] = float((fuel_consumption * value) + (electricity_consumption * value)) * factor
 
                 else:
                     electricity_emission_factor = BAFU_EMISSSION_FACTORS["PHEV-e"]
@@ -150,7 +156,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                                 impact="energy chain"
                             )] = float(
                                 electricity_consumption * value
-                            )
+                            ) * factor
 
                     for impact_cat, value in fuel_emission_factor.items():
                         if impact_cat == "climate change":
@@ -162,7 +168,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                                 impact="energy chain"
                             )] += float(
                                 fuel_consumption * value
-                            )
+                            ) * factor
 
     results = []
 
