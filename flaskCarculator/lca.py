@@ -172,6 +172,10 @@ def set_properties_for_plugin(model, params):
     :param params:
     :return:
     """
+
+    if "electric utility factor" in params:
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="electric utility factor")] = params["electric utility factor"]
+
     if "electricity consumption" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
         model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, electric mode")] = (
