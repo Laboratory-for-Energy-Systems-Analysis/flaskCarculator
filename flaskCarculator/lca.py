@@ -206,6 +206,12 @@ def set_properties_for_plugin(model, params):
     if "power" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
 
+    model.array.loc[dict(powertrain=params["powertrain"], parameter="electric engine mass")] = (
+           model.array.loc[dict(powertrain=params["powertrain"], parameter="electric powers")]
+           * model.array.loc[dict(powertrain=params["powertrain"], parameter="electric mass per power")]
+           + model.array.loc[dict(powertrain=params["powertrain"], parameter="electric fixed mass")]
+   )
+
     if "driving mass" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
 
