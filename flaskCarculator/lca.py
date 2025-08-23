@@ -174,8 +174,15 @@ def set_properties_for_plugin(model, params):
     """
     if "electricity consumption" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
     if "fuel consumption" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")] = params["fuel consumption"] / 100
+        fuel_specs = FUEL_SPECS[params["powertrain"]]
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, combustion mode")] = (
+                params["fuel consumption"]
+                / 100
+        ) * (fuel_specs["lhv"] * 1000)
+
     if "TtW energy" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy")] = params["TtW energy"]
     if "electric energy stored" in params:
@@ -193,6 +200,15 @@ def set_properties_for_plugin(model, params):
 
     if "driving mass" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
+
+    model.array.loc[dict(powertrain=params["powertrain"], parameter="oxidation energy stored")] = (
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel mass")]
+        * (
+            FUEL_SPECS[params["powertrain"]]["lhv"] # MJ/liter
+            / FUEL_SPECS[params["powertrain"]]["density"] # kg/liter
+            / 3.6
+        )
+    )
 
     model.set_vehicle_masses()
     model.set_component_masses()
