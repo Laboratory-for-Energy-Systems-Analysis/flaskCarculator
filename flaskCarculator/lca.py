@@ -240,6 +240,14 @@ def set_properties_for_plugin(model, params):
         )
     )
 
+    model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel mass")] = (
+            model.array.loc[dict(powertrain=params["powertrain"], parameter=p)]
+            * (
+                model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")]
+                * FUEL_SPECS[params["powertrain"]]["density"]
+            )
+    )
+
     return model
 
 def initialize_model(params, nomenclature=None):
