@@ -13,31 +13,29 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 # ai_commentary.py
 
 PROMPT_TMPL_COMPACT = """
-Vehicles (id → {{indicator, total, stages, attrs:{{capacity_utilization, target_range_km}}, feats:{{energy_intensity_kwh_per_km, theoretical_range_km, range_headroom_km, curb_mass_kg, driving_mass_kg}}}}):
+Vehicles (id → {{indicator, total,
+  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain}},
+  feats:{{theoretical_range_km, range_headroom_km, energy_intensity_kwh_per_km, capacity_utilization_label}}}}):
 {veh_payload}
 
 Rules:
-- Rank by TOTAL (ascending = best). Do not convert units.
-- Spread: best, worst, absolute range (worst - best).
-- "Drivers": ONE short sentence per vehicle (≤20 words), cite ≤2 stages + ≤2 attrs/feats.
-- "Capacity_and_range": ONE line per vehicle:
-    - capacity_utilization: low|medium|high|unknown + numeric if available
-    - range_km_est and range_headroom_km if available; keep note ≤12 words.
-- DO NOT include recommendations.
+- Rank internally by TOTAL (ascending = best) to orient the narrative, but DO NOT output a ranking list.
+- Summary (≤180 words):
+    - First sentence must name BEST (lowest total) and WORST (highest total) with their ids and totals.
+    - Put results in perspective using: capacity utilization (use capacity_utilization_label if provided), estimated range autonomy (theoretical_range_km and headroom), and energy intensity/consumption.
+    - When relevant, reference energy source context (electricity_type / hydrogen_type / fuel_consumption_l_per_100km / electricity_consumption_kwh_per_100km) to explain differences in climate change totals.
+    - Keep factual; do not normalize or invent units.
 
-Summary (mandatory, ≤180 words):
-- First sentence must correctly name BEST (lowest total) and WORST (highest total) vehicle ids and their totals.
-- Then explain how differences in capacity utilization and range autonomy put these totals in perspective.
-- Tie to stages where relevant (e.g., higher road ↔ heavier mass; higher energy chain ↔ higher kWh/100 km).
-- Keep factual and grounded in provided numbers; no normalization.
+- Capacity_and_range:
+    - For each vehicle: include id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
+      range_km_est (theoretical_range_km if available) and range_headroom_km if available, plus a ≤12-word note.
 
 Return ONLY this JSON:
 {{
   "summary": "≤180 words",
-  "ranking": [{{"id":"...","total": number}}],                           
-  "spread": {{"best_id":"...","best_total":number,"worst_id":"...","worst_total":number,"range_abs":number}},
-  "drivers": [{{"id":"...","note":"≤20 words"}}],                        
-  "capacity_and_range": [{{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}]
+  "capacity_and_range": [
+    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}
+  ]
 }}
 """
 
@@ -72,15 +70,22 @@ def _pick_lang(language: str) -> str:
     return lang if lang in LANG_NAMES else "en"
 
 def _filter_essentials(veh_payload: dict) -> dict:
-    """Drop non-essential feats/attrs to cut prompt size."""
-    KEEP_FEATS = {
-        "capacity_utilization","energy_intensity_kwh_per_km","theoretical_range_km","range_headroom_km",
-        "curb_mass_kg","driving_mass_kg","electricity_type","hydrogen_type",
-    }
+    """Keep only fields needed for summary + capacity/range perspective and energy-source context."""
     KEEP_ATTRS = {
-        "capacity_utilization","capacity_utilization_label",
-        "energy_intensity_kwh_per_km","theoretical_range_km","range_headroom_km",
-        "curb_mass_kg","driving_mass_kg"
+        "capacity_utilization",
+        "target_range_km",
+        "electricity_consumption_kwh_per_100km",
+        "fuel_consumption_l_per_100km",
+        "electricity_type",
+        "hydrogen_type",
+        "powertrain",
+    }
+    KEEP_FEATS = {
+        "capacity_utilization",              # numeric
+        "capacity_utilization_label",        # low/medium/high (your deterministic label)
+        "energy_intensity_kwh_per_km",
+        "theoretical_range_km",
+        "range_headroom_km",
     }
 
     slim = {}
@@ -88,43 +93,36 @@ def _filter_essentials(veh_payload: dict) -> dict:
         slim[vid] = {
             "indicator": d.get("indicator"),
             "total": d.get("total"),
-            "stages": d.get("stages"),
+            # stages are optional for this condensed narrative; you can pass them if you still want references
+            # "stages": d.get("stages"),
             "attrs": {k: d.get("attrs", {}).get(k) for k in KEEP_ATTRS if k in d.get("attrs", {})},
             "feats": {k: d.get("feats", {}).get(k) for k in KEEP_FEATS if k in d.get("feats", {})},
         }
     return slim
 
+
 def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
-    """
-    veh_payload: dict from build_compare_payload_swisscargo()
-    timeout_s: max seconds to spend in the model call (router limit is 30s total, so keep this small)
-    """
     lang = _pick_lang(language)
     system = f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. Use only provided numbers. Output strict JSON."
-    # Trim payload for speed
-    slim_payload = _filter_essentials(veh_payload)
 
-    # Adaptive token cap: more vehicles → slightly more tokens
+    slim_payload = _filter_essentials(veh_payload)
     vcount = max(1, len(slim_payload))
     max_tok = 500 if vcount <= 3 else 700
-
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
     result = _call_openai(system, PROMPT_TMPL_COMPACT.format(veh_payload=payload_str),
                           max_tokens=max_tok, temp=0.2, timeout_s=timeout_s)
 
-    if result.get("_error"):
-        # return a minimal deterministic result AND the error so you can debug
-        items = sorted(((vid, d.get("total", float("inf"))) for vid, d in slim_payload.items()), key=lambda x: x[1])
-        ranking = [{"id": vid, "total": tot} for vid, tot in items]
-        spread = {}
-        if ranking:
-            best, worst = ranking[0], ranking[-1]
-            spread = {"best_id": best["id"], "best_total": best["total"],
-                      "worst_id": worst["id"], "worst_total": worst["total"],
-                      "range_abs": (worst["total"] - best["total"]) if isinstance(worst["total"],
-                                                                                  (int, float)) and isinstance(
-                          best["total"], (int, float)) else None}
-        result = {"summary": "Time-limited comparison.", "ranking": ranking, "spread": spread,
-                  "drivers": [], "capacity_and_range": [], "recommendations": [], "_error": result["_error"]}
+    if result.get("_error") or not result:
+        # fallback summary with no ranking/spread
+        return {"language": lang,
+                "comparison": {"summary": "Time-limited comparison.",
+                               "capacity_and_range": []}}
+
+    # sanitize: drop unwanted keys
+    for k in ["drivers","ranking","spread","recommendations"]:
+        if k in result:
+            result.pop(k, None)
+
     return {"language": lang, "comparison": result}
+
