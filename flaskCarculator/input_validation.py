@@ -95,6 +95,7 @@ def validate_input_data(data: dict) -> list:
         "battery technology",
         "electric energy stored",
         "battery lifetime replacement",
+        "fuel cell stack lifetime replacement",
         "target_range",
         "country",
         "func_unit",

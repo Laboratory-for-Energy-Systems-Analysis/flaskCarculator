@@ -108,6 +108,7 @@ def calculate_lca():
                 "fuel cell stack mass",
                 "fuel cell ancillary BoP mass",
                 "fuel cell essential BoP mass",
+                "fuel cell lifetime replacements",
                 "battery cell mass",
                 "battery BoP mass",
                 "energy battery mass",

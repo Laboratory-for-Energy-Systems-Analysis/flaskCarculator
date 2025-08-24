@@ -158,6 +158,9 @@ def set_vehicle_properties_after_run(model, params):
     if "battery lifetime replacement" in params:
         model.array.loc[dict(parameter="battery lifetime replacements")] = params["battery lifetime replacement"]
 
+    if "fuel cell lifetime replacement" in params:
+        model.array.loc[dict(parameter="fuel cell lifetime replacements")] = params["fuel cell lifetime replacement"]
+
     return model
 
 def set_properties_for_plugin(model, params):
