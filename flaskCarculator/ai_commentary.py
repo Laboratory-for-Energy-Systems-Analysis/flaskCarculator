@@ -121,7 +121,14 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     max_tok = 500 if vcount <= 3 else 700
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
-    result = _call_openai(...)
+    result = _call_openai(
+        system=system,
+        prompt=PROMPT_TMPL_COMPACT.format(veh_payload=payload_str, close_band=0.02),
+        max_tokens=max_tok,
+        temp=0.2,
+        timeout_s=timeout_s
+    )
+
     if result.get("_error") or not result:
         return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
