@@ -35,172 +35,146 @@ def calculate_lca():
     if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    models = {}
+    default_vehicle_parameters = [
+        "lifetime kilometers",
+        "kilometers per year",
+        "average passengers",
+        "capacity utilization",
+        "daily distance",
+        "number of trips",
+        "distance per trip",
+        "average speed",
+        "driving mass",
+        "power",
+        "electric power",
+        "TtW energy",
+        "TtW energy, combustion mode",
+        "TtW energy, electric mode",
+        "TtW efficiency",
+        "fuel consumption",
+        "electricity consumption",
+        "electric utility factor",
+        "range",
+        "target range",
+        "battery technology",
+        "electric energy stored",
+        "battery lifetime kilometers",
+        "battery cell energy density",
+        "battery cycle life",
+        "battery lifetime replacements",
+        "fuel cell system efficiency",
+        "fuel cell lifetime replacements",
+        "oxidation energy stored",
+        "glider base mass",
+        "lightweighting",
+        "suspension mass",
+        "braking system mass",
+        "wheels and tires mass",
+        "cabin mass",
+        "electrical system mass",
+        "other components mass",
+        "transmission mass",
+        "fuel mass",
+        "charger mass",
+        "converter mass",
+        "inverter mass",
+        "power distribution unit mass",
+        "combustion engine mass",
+        "electric engine mass",
+        "powertrain mass",
+        "exhaust system mass",
+        "fuel cell stack mass",
+        "fuel cell ancillary BoP mass",
+        "fuel cell essential BoP mass",
+        "fuel cell lifetime replacements",
+        "battery cell mass",
+        "battery BoP mass",
+        "energy battery mass",
+        "fuel tank mass",
+        "curb mass",
+        "cargo mass",
+        "total cargo mass",
+        "driving mass",
+        "gross mass",
+    ]
 
-    from pprint import pprint
-    pprint(data)
+    if data.get("nomenclature") == "swisscargo":
+        default_vehicle_parameters.extend([
+            "energy cost",
+            "amortised purchase cost",
+            "maintenance cost",
+            "amortised component replacement cost"
+        ])
+
+    import gc
 
     for vehicle in data["vehicles"]:
         model, errors = initialize_model(vehicle, data.get("nomenclature"))
-        models[vehicle["id"]] = model
         if errors:
             return jsonify({"error": "Output validation issues", "details": errors}), 500
 
-    try:
-        for vehicle in data["vehicles"]:
-            if data.get("nomenclature") == "tcs":
-                vehicle["results_ecoinvent"] = format_results_for_tcs(
-                    data=models[vehicle["id"]],
-                    params=vehicle
-                )
-                vehicle["results_bafu"] = format_results_for_tcs(
-                    data=models[vehicle["id"]],
-                    params=vehicle,
-                    bafu=True
-                )
-            elif data.get("nomenclature") == "swisscargo":
-                vehicle["results"] = format_results_for_swisscargo(
-                    data=models[vehicle["id"]], params=vehicle
-                )
+        # --- compute results just like before ---
+        if data.get("nomenclature") == "tcs":
+            vehicle["results_ecoinvent"] = format_results_for_tcs(data=model, params=vehicle)
+            vehicle["results_bafu"] = format_results_for_tcs(data=model, params=vehicle, bafu=True)
+        elif data.get("nomenclature") == "swisscargo":
+            vehicle["results"] = format_results_for_swisscargo(data=model, params=vehicle)
+        else:
+            vehicle["results"] = serialize_xarray(model.results)
 
-            else:
-                vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
-
-            default_vehicle_parameters = [
-                "lifetime kilometers",
-                "kilometers per year",
-                "average passengers",
-                "capacity utilization",
-                "daily distance",
-                "number of trips",
-                "distance per trip",
-                "average speed",
-                "driving mass",
-                "power",
-                "electric power",
-                "TtW energy",
-                "TtW energy, combustion mode",
-                "TtW energy, electric mode",
-                "TtW efficiency",
-                "fuel consumption",
-                "electricity consumption",
-                "electric utility factor",
-                "range",
-                "target range",
-                "battery technology",
-                "electric energy stored",
-                "battery lifetime kilometers",
-                "battery cell energy density",
-                "battery cycle life",
-                "battery lifetime replacements",
-                "fuel cell system efficiency",
-                "fuel cell lifetime replacements",
-                "oxidation energy stored",
-                "glider base mass",
-                "lightweighting",
-                "suspension mass",
-                "braking system mass",
-                "wheels and tires mass",
-                "cabin mass",
-                "electrical system mass",
-                "other components mass",
-                "transmission mass",
-                "fuel mass",
-                "charger mass",
-                "converter mass",
-                "inverter mass",
-                "power distribution unit mass",
-                "combustion engine mass",
-                "electric engine mass",
-                "powertrain mass",
-                "exhaust system mass",
-                "fuel cell stack mass",
-                "fuel cell ancillary BoP mass",
-                "fuel cell essential BoP mass",
-                "fuel cell lifetime replacements",
-                "battery cell mass",
-                "battery BoP mass",
-                "energy battery mass",
-                "fuel tank mass",
-                "curb mass",
-                "cargo mass",
-                "total cargo mass",
-                "driving mass",
-                "gross mass",
-            ]
-
-            if data.get("nomenclature") == "swisscargo":
-                default_vehicle_parameters.extend([
-                    "energy cost",
-                    "amortised purchase cost",
-                    "maintenance cost",
-                    "amortised component replacement cost"
-                ])
-
-            for p in default_vehicle_parameters:
-                if p in models[vehicle["id"]].array.parameter.values:
-                    if p in ("fuel consumption", "electricity consumption"):
-                        val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item() * 100  # Convert to per 100 km
-                    else:
-                        val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
-                    if not np.isfinite(val):  # Detects NaN, inf, -inf
-                        val = 0.0
-                    vehicle[p] = val
-
-
-
-            vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
-            vehicle["indicators"] = models[vehicle["id"]].inventory.method
-            vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
-            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
-            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["carculator version"] = ".".join(map(str, models[vehicle["id"]].version))
-            vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
-            vehicle["country"] = data["country_code"]
-
-        if ai_compare and data.get("nomenclature") == "swisscargo":
-            try:
-                payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-
-                # Debug surface to ensure we see what's going on
-                data["_ai_compare_debug"] = {
-                    "n_vehicles": len(data["vehicles"]),
-                    "payload_vehicle_ids": list(payload.keys()),
-                    "sample_payload": next(iter(payload.values()), None)
-                }
-
-                if not payload:
-                    data["ai_comparison_note"] = "No 'climate change' results found to compare."
+        # harvest parameters (unchanged logic, but read from `model`)
+        for p in default_vehicle_parameters:
+            if p in model.array.parameter.values:
+                if p in ("fuel consumption", "electricity consumption"):
+                    val = model.array.sel(parameter=p).mean().values.item() * 100
                 else:
-                    data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                        payload, language=ai_language, detail="detailed"
-                    )
+                    val = model.array.sel(parameter=p).mean().values.item()
+                if not np.isfinite(val):
+                    val = 0.0
+                vehicle[p] = val
 
-            except Exception as e:
-                data["ai_comparison_error"] = str(e)
+        vehicle["battery chemistry"] = list(model.energy_storage["electric"].values())[0]
+        vehicle["indicators"] = model.inventory.method
+        vehicle["indicator type"] = model.inventory.indicator
+        vehicle["scenario"] = model.inventory.scenario
+        vehicle["functional unit"] = model.inventory.func_unit
+        vehicle["carculator version"] = ".".join(map(str, model.version))
+        vehicle["ecoinvent version"] = model.ecoinvent_version
+        vehicle["country"] = data["country_code"]
 
-        if ai_compare and data.get("nomenclature") == "swisscargo":
-            try:
-                payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-                # detailed comparison that leverages attrs + derived feats
-                data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(payload, language=ai_language,
-                                                                              detail="detailed")
-            except Exception as e:
-                data["ai_comparison_error"] = str(e)
+        # --- free memory NOW ---
+        del model
+        gc.collect()
 
-        # Clean up memory after the response is sent
-        @after_this_request
-        def cleanup(response):
-            nonlocal models
-            models.clear()  # Clear the dictionary to release memory
-            del models  # Explicitly delete the variable
-            return response
+    if ai_compare and data.get("nomenclature") == "swisscargo":
+        try:
+            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
 
-    except Exception as e:
-        from pprint import pprint
-        pprint(data)
-        return jsonify({"error": "An error occurred", "details": str(e)}), 500
+            # Debug surface to ensure we see what's going on
+            data["_ai_compare_debug"] = {
+                "n_vehicles": len(data["vehicles"]),
+                "payload_vehicle_ids": list(payload.keys()),
+                "sample_payload": next(iter(payload.values()), None)
+            }
+
+            if not payload:
+                data["ai_comparison_note"] = "No 'climate change' results found to compare."
+            else:
+                data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
+                    payload, language=ai_language, detail="detailed"
+                )
+
+        except Exception as e:
+            data["ai_comparison_error"] = str(e)
+
+    if ai_compare and data.get("nomenclature") == "swisscargo":
+        try:
+            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+            # detailed comparison that leverages attrs + derived feats
+            data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(payload, language=ai_language,
+                                                                          detail="detailed")
+        except Exception as e:
+            data["ai_comparison_error"] = str(e)
 
 
 
