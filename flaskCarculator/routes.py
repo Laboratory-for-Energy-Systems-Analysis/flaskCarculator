@@ -162,6 +162,27 @@ def calculate_lca():
         if ai_compare and data.get("nomenclature") == "swisscargo":
             try:
                 payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+
+                # Debug surface to ensure we see what's going on
+                data["_ai_compare_debug"] = {
+                    "n_vehicles": len(data["vehicles"]),
+                    "payload_vehicle_ids": list(payload.keys()),
+                    "sample_payload": next(iter(payload.values()), None)
+                }
+
+                if not payload:
+                    data["ai_comparison_note"] = "No 'climate change' results found to compare."
+                else:
+                    data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
+                        payload, language=ai_language, detail="detailed"
+                    )
+
+            except Exception as e:
+                data["ai_comparison_error"] = str(e)
+
+        if ai_compare and data.get("nomenclature") == "swisscargo":
+            try:
+                payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
                 # detailed comparison that leverages attrs + derived feats
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(payload, language=ai_language,
                                                                               detail="detailed")
