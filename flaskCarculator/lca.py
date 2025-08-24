@@ -494,8 +494,6 @@ def initialize_model(params, nomenclature=None):
             electricity_mix = np.zeros(21)
             electricity_mix[technology_indices[params["electricity"]]] = 1
             electricity_mix = {"custom electricity mix": [electricity_mix]}
-            print(f"custom electricity mix: {electricity_mix}")
-
 
     m.inventory = inventory(
         m,

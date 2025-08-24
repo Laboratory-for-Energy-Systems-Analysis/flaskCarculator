@@ -1,4 +1,6 @@
-from flask import Blueprint, request, jsonify, after_this_request, Response
+from flask import Blueprint, request, jsonify, Response
+import time
+
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
@@ -23,6 +25,8 @@ def calculate_lca():
     This function receives the input data from the user, validates it, and calculates the LCA results.
     :return: JSON response
     """
+    deadline = time.time() + 24.0  # leave ~6s headroom for Heroku’s 30s
+
     data = request.json
 
     ai_compare = bool((data or {}).get("ai_compare", False))
@@ -147,34 +151,19 @@ def calculate_lca():
         gc.collect()
 
     if ai_compare and data.get("nomenclature") == "swisscargo":
-        try:
-            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-
-            # Debug surface to ensure we see what's going on
-            data["_ai_compare_debug"] = {
-                "n_vehicles": len(data["vehicles"]),
-                "payload_vehicle_ids": list(payload.keys()),
-                "sample_payload": next(iter(payload.values()), None)
-            }
-
-            if not payload:
-                data["ai_comparison_note"] = "No 'climate change' results found to compare."
-            else:
+        # If we’re too close to timeout, skip AI to avoid H12
+        if time.time() > deadline:
+            data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
+        else:
+            try:
+                payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+                # Pass remaining time budget to AI layer so it sets a tight timeout
+                remaining = max(3.0, deadline - time.time())
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload, language=ai_language, detail="detailed"
+                    payload, language=ai_language, detail="compact", timeout_s=remaining
                 )
-
-        except Exception as e:
-            data["ai_comparison_error"] = str(e)
-
-    if ai_compare and data.get("nomenclature") == "swisscargo":
-        try:
-            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-            # detailed comparison that leverages attrs + derived feats
-            data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(payload, language=ai_language,
-                                                                          detail="detailed")
-        except Exception as e:
-            data["ai_comparison_error"] = str(e)
+            except Exception as e:
+                data["ai_comparison_error"] = str(e)
 
 
 
