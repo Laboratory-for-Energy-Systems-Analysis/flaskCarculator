@@ -12,7 +12,7 @@ data = {
     "nomenclature": "swisscargo",
     "country_code": "CH",
     "ai_compare": True,
-    "language": "de",
+    "language": "en",
     "vehicles": [
          {
              "id": "BEEV001",
@@ -26,6 +26,33 @@ data = {
              "kilometers per year": 107000.0,
              "electricity consumption": 145,
              "battery lifetime replacement": 0,
+        },
+        {
+             "id": "BEEV002",
+             "vehicle_type": "truck",
+             "year": 2023,
+             "size": "32t",
+             "powertrain": "BEV",
+             "battery technology": "NMC-811",
+             "electric energy stored": 300.0,
+             "lifetime kilometers": 300000.0,
+             "kilometers per year": 107000.0,
+             "electricity consumption": 125,
+             "battery lifetime replacement": 0,
+        },
+{
+             "id": "ICEV001",
+             "vehicle_type": "truck",
+             "year": 2023,
+             "size": "32t",
+             "powertrain": "ICEV-d",
+             #"battery technology": "NMC-811",
+             #"electric energy stored": 300.0,
+             "lifetime kilometers": 300000.0,
+             "kilometers per year": 107000.0,
+             #"electricity consumption": 125,
+             "fuel consumption": 32,
+             #"battery lifetime replacement": 0,
         }
     ],
 }
