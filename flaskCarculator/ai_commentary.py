@@ -17,19 +17,27 @@ Vehicles (id → {{indicator, total, stages, attrs:{{capacity_utilization, targe
 {veh_payload}
 
 Rules:
-- Rank by TOTAL (ascending = best). No conversions.
-- Spread: best/worst + absolute range (worst - best).
-- Drivers: one short sentence per vehicle (≤20 words), mention ≤2 stages + ≤2 attrs/feats.
-- Capacity & range: one line per vehicle with capacity_utilization (and value if present), range_km_est & headroom if present (≤12 words).
-- Recommendations: ≤2 concrete, terse actions per vehicle.
-Return ONLY JSON:
+- Rank by TOTAL (ascending = best). Do not convert units.
+- Spread: best, worst, absolute range (worst - best).
+- "Drivers": ONE short sentence per vehicle (≤20 words), cite ≤2 stages + ≤2 attrs/feats.
+- "Capacity_and_range": ONE line per vehicle:
+    - capacity_utilization: low|medium|high|unknown + numeric if available
+    - range_km_est and range_headroom_km if available; keep note ≤12 words.
+- DO NOT include recommendations.
+
+Summary (mandatory, ≤180 words):
+- First sentence must correctly name BEST (lowest total) and WORST (highest total) vehicle ids and their totals.
+- Then explain how differences in capacity utilization and range autonomy put these totals in perspective.
+- Tie to stages where relevant (e.g., higher road ↔ heavier mass; higher energy chain ↔ higher kWh/100 km).
+- Keep factual and grounded in provided numbers; no normalization.
+
+Return ONLY this JSON:
 {{
-  "summary": "≤120 words",
-  "ranking": [{{"id":"...","total": number}}],
+  "summary": "≤180 words",
+  "ranking": [{{"id":"...","total": number}}],                           
   "spread": {{"best_id":"...","best_total":number,"worst_id":"...","worst_total":number,"range_abs":number}},
-  "drivers": [{{"id":"...","note":"≤20 words"}}],
-  "capacity_and_range": [{{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}],
-  "recommendations": [{{"id":"...","actions":["...","..."]}}]
+  "drivers": [{{"id":"...","note":"≤20 words"}}],                        
+  "capacity_and_range": [{{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}]
 }}
 """
 
@@ -69,7 +77,12 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "capacity_utilization","energy_intensity_kwh_per_km","theoretical_range_km","range_headroom_km",
         "curb_mass_kg","driving_mass_kg","electricity_type","hydrogen_type",
     }
-    KEEP_ATTRS = {"capacity_utilization","target_range_km"}
+    KEEP_ATTRS = {
+        "capacity_utilization","capacity_utilization_label",
+        "energy_intensity_kwh_per_km","theoretical_range_km","range_headroom_km",
+        "curb_mass_kg","driving_mass_kg"
+    }
+
     slim = {}
     for vid, d in veh_payload.items():
         slim[vid] = {

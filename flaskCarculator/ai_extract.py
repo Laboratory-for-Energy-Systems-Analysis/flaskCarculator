@@ -121,6 +121,16 @@ def derive_features_from_vehicle(v: dict) -> dict:
     cons_el = feats.get("electricity_consumption_kwh_per_100km")
     cons_f = feats.get("fuel_consumption_l_per_100km")
     capu = feats.get("capacity_utilization") or 0.0
+
+    cu = feats.get("capacity_utilization")
+    if cu is not None:
+        if cu < 0.35:
+            feats["capacity_utilization_label"] = "low"
+        elif cu <= 0.65:
+            feats["capacity_utilization_label"] = "medium"
+        else:
+            feats["capacity_utilization_label"] = "high"
+
     pwr = feats.get("power_kw") or 0.0
 
     if gm and gm > 0 and cm is not None:
