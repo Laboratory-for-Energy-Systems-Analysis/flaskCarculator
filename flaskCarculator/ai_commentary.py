@@ -24,22 +24,25 @@ Vehicles (id → {{indicator, total, stages, stage_shares_pct?, attrs, feats}}):
 Rules:
 - Rank by TOTAL (ascending = best). Do not alter units or convert.
 - Quantify spread: best, worst, absolute range (worst - best).
-- "Drivers": tie stage differences to plausible attrs/feats (e.g., higher energy chain ↔ higher kWh/100km; higher road ↔ heavier mass).
-- "Capacity_and_range": for EACH vehicle, comment on capacity utilization (low/medium/high) and range autonomy:
-    - If feats.capacity_utilization is present, mention it qualitatively and numerically.
-    - If feats.theoretical_range_km is present, report it and whether it likely meets typical duty; if target_range is present, note headroom/shortfall without re-ranking.
+- "Drivers": ONE short sentence per vehicle; cite ≤2 stage drivers and ≤2 attributes/features.
+- "Capacity_and_range": ONE line per vehicle:
+    - capacity_utilization: low|medium|high|unknown (also include numeric if available)
+    - range_km_est, range_headroom_km if available; keep note ≤12 words.
+- "Recommendations": ≤2 concrete actions per vehicle (very short).
 - Do NOT compute impacts per payload or per range; only contextualize.
+- Keep JSON compact; no extra fields.
 
 Output JSON schema:
 {{
-  "summary": "≤180 words",
-  "ranking": [{{"id":"...","total": number}}],
+  "summary": "≤140 words",
+  "ranking": [{{"id":"...","total": number}}],                           # include ALL vehicles
   "spread": {{"best_id":"...","best_total":number,"worst_id":"...","worst_total":number,"range_abs":number}},
-  "drivers": [{{"id":"...","note":"one sentence citing stages and attributes/features"}}],
-  "capacity_and_range": [{{"id":"...","capacity_utilization": "low|medium|high|unknown", "utilization_value": number|null, "range_km_est": number|null, "range_headroom_km": number|null, "note":"short message"}}],
-  "recommendations": [{{"id":"...","actions":["...","..."]}}]
+  "drivers": [{{"id":"...","note":"≤20 words"}}],                        # one per vehicle
+  "capacity_and_range": [{{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}],
+  "recommendations": [{{"id":"...","actions":["...", "..."]}}]           # two per vehicle
 }}
 """
+
 
 def _extract_json(text: str) -> dict:
     try:
@@ -51,7 +54,7 @@ def _extract_json(text: str) -> dict:
             except Exception: pass
         return {"summary":"","ranking":[],"spread":{},"drivers":[],"recommendations":[]}
 
-def _call_openai(system: str, prompt: str, max_tokens=650, temp=0.2) -> dict:
+def _call_openai(system: str, prompt: str, max_tokens=1100, temp=0.2) -> dict:
     for i in range(3):
         try:
             resp = client.chat.completions.create(
