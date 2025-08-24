@@ -1,4 +1,5 @@
 # ai_extract.py (or routes.py)
+
 def _sum_numeric(d: dict, exclude=("category",)):
     s = 0.0
     for k, v in d.items():
@@ -19,45 +20,51 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
       - attrs (raw) and feats (derived)
     """
     out = {}
-    for v in vehicles:
-        vid = v.get("id")
+    for veh in vehicles:
+        vid = veh.get("id")
         if not vid:
             continue
+
         # find climate change block
         cc = None
-        for r in (v.get("results") or []):
+        for r in (veh.get("results") or []):
             if r.get("category") == "climate change":
-                cc = r; break
+                cc = r
+                break
         if not cc:
             continue
 
         # totals & stages
         total = _sum_numeric(cc, exclude=("category",))
-        stages = {k: float(val) for k, val in cc.items() if k != "category" and isinstance(val, (int, float))}
+        stages = {
+            k: float(val)
+            for k, val in cc.items()
+            if k != "category" and isinstance(val, (int, float))
+        }
 
         payload = {
             "indicator": "climate change",
             "total": float(total),
             "stages": stages,
             "attrs": {
-                "powertrain": v.get("powertrain"),
-                "size": v.get("size"),
-                "electric energy stored": v.get("electric energy stored"),
-                "electricity consumption": v.get("electricity consumption"),
-                "fuel consumption": v.get("fuel consumption"),
-                "curb mass": v.get("curb mass"),
-                "driving mass": v.get("driving mass"),
-                "gross mass": v.get("gross mass"),
-                "capacity utilization": v.get("capacity utilization"),
-                "range autonomy (km)": v.get("target range"),
+                "powertrain": veh.get("powertrain"),
+                "size": veh.get("size"),
+                "electric_energy_stored_kwh": veh.get("electric energy stored"),
+                "electricity_consumption_kwh_per_100km": veh.get("electricity consumption"),
+                "fuel_consumption_l_per_100km": veh.get("fuel consumption"),
+                "curb_mass_kg": veh.get("curb mass"),
+                "driving_mass_kg": veh.get("driving mass"),
+                "gross_mass_kg": veh.get("gross mass"),
+                "capacity_utilization": veh.get("capacity utilization"),
+                "target_range_km": veh.get("target range"),
             },
-            "feats": derive_features_from_vehicle(v),
+            "feats": derive_features_from_vehicle(veh),
         }
 
         if include_stage_shares and stages:
             s = sum(stages.values())
             if s > 0:
-                payload["stage_shares_pct"] = {k: 100.0 * v / s for k, v in stages.items()}
+                payload["stage_shares_pct"] = {k: 100.0 * val / s for k, val in stages.items()}
 
         out[vid] = payload
     return out
@@ -82,7 +89,7 @@ def derive_features_from_vehicle(v: dict) -> dict:
     feats["country"] = v.get("country")
     feats["year"] = v.get("year")
 
-    # Energy/efficiency
+    # Energy / efficiency
     feats["electricity_consumption_kwh_per_100km"] = _safe_float(v.get("electricity consumption"))
     feats["fuel_consumption_l_per_100km"] = _safe_float(v.get("fuel consumption"))
     feats["ttw_efficiency"] = _safe_float(v.get("TtW efficiency"))
@@ -103,8 +110,9 @@ def derive_features_from_vehicle(v: dict) -> dict:
 
     # Power / performance
     feats["power_kw"] = _safe_float(v.get("power") or v.get("electric power"))
-    feats["range autonomy_km"] = _safe_float(v.get("target range"))
 
+    # Range (target and theoretical)
+    feats["target_range_km"] = _safe_float(v.get("target range"))
     # Derived metrics (safe guards against None/zero)
     cm = feats.get("curb_mass_kg")
     gm = feats.get("gross_mass_kg")
@@ -125,8 +133,14 @@ def derive_features_from_vehicle(v: dict) -> dict:
         feats["fuel_intensity_l_per_km"] = cons_f / 100.0
     if bat and dm and dm > 0:
         feats["battery_specific_energy_kwh_per_t_vehicle"] = bat / (dm / 1000.0)
+
+    # Theoretical BEV range and headroom vs target
+    if bat is not None and feats.get("energy_intensity_kwh_per_km"):
+        feats["theoretical_range_km"] = bat / feats["energy_intensity_kwh_per_km"]
+        if feats.get("target_range_km") is not None:
+            feats["range_headroom_km"] = feats["theoretical_range_km"] - feats["target_range_km"]
+
     if capu and capu > 0 and gm:
         feats["payload_utilization_ratio"] = capu  # already a ratio in your data
 
     return {k: v for k, v in feats.items() if v is not None}
-
