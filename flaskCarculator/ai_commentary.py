@@ -14,21 +14,22 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total,
-  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain}},
+  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages}},
   feats:{{capacity_utilization_label, energy_intensity_kwh_per_km}}}}):
 {veh_payload}
 
 Rules:
-- Rank internally by TOTAL (ascending = best) to orient the narrative, but DO NOT output a ranking list.
+- Internally sort by TOTAL (ascending = best) to orient your narrative. DO NOT output a ranking list.
+- Treat vehicles with |Δ total| < {close_band} as "effectively similar".
 - Summary (≤180 words):
-    - First sentence must name BEST (lowest total) and WORST (highest total) with their ids and totals.
-    - Put results in perspective using: capacity utilization (use capacity_utilization_label if provided) and target range autonomy.
-    - When relevant, reference energy source context (electricity_type / hydrogen_type / fuel_consumption_l_per_100km / electricity_consumption_kwh_per_100km) to explain differences in climate change totals.
-    - Keep factual; do not normalize or invent units.
-
+    - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals.
+    - Bring context with capacity utilization (use capacity_utilization_label if present) and target_range_km.
+    - Use energy context: electricity_type / hydrogen_type / fuel_consumption_l_per_100km / electricity_consumption_kwh_per_100km to explain differences.
+    - Where helpful, cite top_stages (e.g., "road", "energy chain") to ground the reasoning.
+    - Keep factual; no normalization or invented units. Round numbers sensibly (e.g., totals to 3 decimals; ranges as whole km).
 - Capacity_and_range:
-    - For each vehicle: include id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
-      target_range_km as range_km_est, and a ≤12-word note.
+    - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
+      range_km_est (use target_range_km), note ≤12 words.
 
 Return ONLY this JSON:
 {{
@@ -38,6 +39,7 @@ Return ONLY this JSON:
   ]
 }}
 """
+
 
 
 
@@ -79,13 +81,13 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "electricity_type",
         "hydrogen_type",
         "powertrain",
+        "top_stages",  # NEW
     }
     KEEP_FEATS = {
         "capacity_utilization",
         "capacity_utilization_label",
         "energy_intensity_kwh_per_km",
     }
-
     slim = {}
     for vid, d in veh_payload.items():
         slim[vid] = {
@@ -97,6 +99,18 @@ def _filter_essentials(veh_payload: dict) -> dict:
     return slim
 
 
+def _round_or_none(x, nd=3):
+    try:
+        return round(float(x), nd)
+    except Exception:
+        return None
+
+def _int_or_none(x):
+    try:
+        return int(round(float(x)))
+    except Exception:
+        return None
+
 
 def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
     lang = _pick_lang(language)
@@ -107,30 +121,25 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     max_tok = 500 if vcount <= 3 else 700
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
-    result = _call_openai(system, PROMPT_TMPL_COMPACT.format(veh_payload=payload_str),
-                          max_tokens=max_tok, temp=0.2, timeout_s=timeout_s)
-
+    result = _call_openai(...)
     if result.get("_error") or not result:
         return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
-    # Drop unwanted keys and map fields defensively
-    for k in ["drivers", "ranking", "spread", "recommendations", "capacity_and_range_extra", "range_headroom_km"]:
-        if k in result:
-            result.pop(k, None)
+    # sanitize: only keep allowed keys
+    for k in ["drivers", "ranking", "spread", "recommendations", "range_headroom_km"]:
+        result.pop(k, None)
 
-    # Ensure capacity_and_range exists and only keeps allowed fields
-    car = []
+    # round numbers and ensure target range appears as integer km
+    cleaned = {"summary": result.get("summary", "").strip(), "capacity_and_range": []}
     for item in result.get("capacity_and_range", []):
-        car.append({
+        cleaned["capacity_and_range"].append({
             "id": item.get("id"),
             "capacity_utilization": item.get("capacity_utilization"),
-            "utilization_value": item.get("utilization_value"),
-            # prefer model's field; otherwise fill from attrs if present later
-            "range_km_est": item.get("range_km_est"),
-            "note": item.get("note"),
+            "utilization_value": _round_or_none(item.get("utilization_value"), nd=3),
+            "range_km_est": _int_or_none(item.get("range_km_est")),
+            "note": (item.get("note") or "").strip()[:60]
         })
-    result["capacity_and_range"] = car
 
-    return {"language": lang, "comparison": result}
+    return {"language": lang, "comparison": cleaned}
 
 

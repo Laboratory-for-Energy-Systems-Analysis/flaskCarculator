@@ -1,4 +1,10 @@
-# ai_extract.py (or routes.py)
+
+
+def _top_stage_contributors(stages: dict, n=2):
+    # stages is already {"energy chain": 0.175, "road": 0.159, ...}
+    items = sorted(stages.items(), key=lambda kv: kv[1], reverse=True)
+    return [k for k, _ in items[:n]]
+
 
 def _sum_numeric(d: dict, exclude=("category",)):
     s = 0.0
@@ -57,6 +63,7 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
                 "gross_mass_kg": veh.get("gross mass"),
                 "capacity_utilization": veh.get("capacity utilization"),
                 "target_range_km": veh.get("target range"),
+                "top_stages": _top_stage_contributors(stages, n=2),
             },
             "feats": derive_features_from_vehicle(veh),
         }
