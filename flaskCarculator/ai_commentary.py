@@ -45,22 +45,19 @@ def _extract_json(text: str) -> dict:
         return {}
 
 def _call_openai(system: str, prompt: str, max_tokens=700, temp=0.2, timeout_s=10.0) -> dict:
-    # per-request timeout overrides client default
-    for i in range(2):  # keep retries minimal to honor deadline
-        try:
-            resp = client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
-                temperature=temp,
-                max_tokens=max_tokens,
-                response_format={"type":"json_object"},
-                timeout=timeout_s,
-            )
-            return _extract_json(resp.choices[0].message.content)
-        except Exception:
-            if i == 0:
-                _t.sleep(0.3)  # brief backoff then one retry
-    return {}
+    try:
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
+            temperature=temp,
+            max_tokens=max_tokens,
+            response_format={"type":"json_object"},
+            timeout=timeout_s,   # <- hard cap
+        )
+        return _extract_json(resp.choices[0].message.content)
+    except Exception as e:
+        # propagate the reason so you can see it in the response
+        return {"_error": repr(e)}
 
 def _pick_lang(language: str) -> str:
     lang = (language or "en").lower()
@@ -98,19 +95,23 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     vcount = max(1, len(slim_payload))
     max_tok = 500 if vcount <= 3 else 700
 
-    result = _call_openai(system, PROMPT_TMPL_COMPACT.format(veh_payload=slim_payload),
+    payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
+
+    result = _call_openai(system, PROMPT_TMPL_COMPACT.format(veh_payload=payload_str),
                           max_tokens=max_tok, temp=0.2, timeout_s=timeout_s)
 
-    # If still empty, return a deterministic minimal comparison (never block)
-    if not result:
+    if result.get("_error"):
+        # return a minimal deterministic result AND the error so you can debug
         items = sorted(((vid, d.get("total", float("inf"))) for vid, d in slim_payload.items()), key=lambda x: x[1])
         ranking = [{"id": vid, "total": tot} for vid, tot in items]
         spread = {}
         if ranking:
             best, worst = ranking[0], ranking[-1]
-            spread = {"best_id": best["id"], "best_total": best["total"], "worst_id": worst["id"], "worst_total": worst["total"],
-                      "range_abs": (worst["total"] - best["total"]) if isinstance(worst["total"], (int,float)) and isinstance(best["total"], (int,float)) else None}
+            spread = {"best_id": best["id"], "best_total": best["total"],
+                      "worst_id": worst["id"], "worst_total": worst["total"],
+                      "range_abs": (worst["total"] - best["total"]) if isinstance(worst["total"],
+                                                                                  (int, float)) and isinstance(
+                          best["total"], (int, float)) else None}
         result = {"summary": "Time-limited comparison.", "ranking": ranking, "spread": spread,
-                  "drivers": [], "capacity_and_range": [], "recommendations": []}
-
+                  "drivers": [], "capacity_and_range": [], "recommendations": [], "_error": result["_error"]}
     return {"language": lang, "comparison": result}

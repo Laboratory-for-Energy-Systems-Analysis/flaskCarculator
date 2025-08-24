@@ -151,19 +151,17 @@ def calculate_lca():
         gc.collect()
 
     if ai_compare and data.get("nomenclature") == "swisscargo":
-        # If we’re too close to timeout, skip AI to avoid H12
-        if time.time() > deadline:
-            data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
-        else:
-            try:
-                payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-                # Pass remaining time budget to AI layer so it sets a tight timeout
-                remaining = max(3.0, deadline - time.time())
+        try:
+            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+            remaining = max(3.0, deadline - time.time())  # seconds left for AI
+            if remaining < 4.0:
+                data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
+            else:
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload, language=ai_language, detail="compact", timeout_s=remaining
+                    payload, language=ai_language, detail="compact", timeout_s=min(10.0, remaining - 1.0)
                 )
-            except Exception as e:
-                data["ai_comparison_error"] = str(e)
+        except Exception as e:
+            data["ai_comparison_error"] = str(e)
 
 
 
