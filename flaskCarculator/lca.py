@@ -147,7 +147,7 @@ def set_vehicle_properties_after_run(model, params):
         if "electric energy stored" in model.array.parameter.values:
             model.array.loc[dict(parameter=range_var)] = (
                     model.array.loc[dict(parameter="electric energy stored")]
-                    / params.get("electricity consumption", 0) # exclude charging losses
+                    / (params.get("electricity consumption", 0) / 100) # exclude charging losses
             ) * model.array.loc[dict(parameter="battery DoD")]
 
 
