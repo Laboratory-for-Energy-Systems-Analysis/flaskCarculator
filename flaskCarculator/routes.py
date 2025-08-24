@@ -6,6 +6,10 @@ import json
 import numpy as np
 from collections import OrderedDict
 
+from .ai_commentary import ai_compare_across_vehicles_swisscargo
+from .ai_extract import build_compare_payload_swisscargo
+
+
 main = Blueprint('main', __name__)
 
 @main.route("/")
@@ -20,6 +24,11 @@ def calculate_lca():
     :return: JSON response
     """
     data = request.json
+
+    ai_compare = bool((data or {}).get("ai_compare", False))
+    ai_language = (data or {}).get("language") or (
+        (request.headers.get("Accept-Language") or "en").split(",")[0].split("-")[0]
+    )
 
     # Validate the received data
     data, validation_errors = validate_input(data)
@@ -150,6 +159,12 @@ def calculate_lca():
             vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
             vehicle["country"] = data["country_code"]
 
+        if ai_compare and data.get("nomenclature") == "swisscargo":
+            try:
+                payload = build_compare_payload_swisscargo(data["vehicles"])
+                data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(payload, language=ai_language)
+            except Exception as e:
+                data["ai_comparison_error"] = str(e)
 
         # Clean up memory after the response is sent
         @after_this_request

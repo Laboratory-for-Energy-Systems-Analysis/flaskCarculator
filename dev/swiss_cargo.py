@@ -9,8 +9,10 @@ url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
 
 # Create the data payload to send to the server
 data = {
-    "nomenclature": "ecoinvent",
+    "nomenclature": "swisscargo",
     "country_code": "CH",
+    "ai_compare": True,
+    "language": "de",
     "vehicles": [
          {
              "id": "BEEV001",
@@ -23,7 +25,7 @@ data = {
              "lifetime kilometers": 710000.0,
              "kilometers per year": 107000.0,
              "electricity consumption": 145,
-             "battery lifetime replacement": 0
+             "battery lifetime replacement": 0,
         }
     ],
 }
@@ -36,10 +38,10 @@ if response.status_code == 200:
     # Parse the JSON response
     result = response.json()
 
-    array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
-    print(array.coords["impact"].values)
-    #pprint(result)
-    print(array.sel(impact_category="climate change"))
+    #array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
+    #print(array.coords["impact"].values)
+    pprint(result)
+    #print(array.sel(impact_category="climate change"))
 
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
