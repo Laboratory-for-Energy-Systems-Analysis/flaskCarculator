@@ -40,7 +40,6 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
             "total": float(total),
             "stages": stages,
             "attrs": {
-                # a compact subset of raw attrs the model might mention verbatim
                 "powertrain": v.get("powertrain"),
                 "size": v.get("size"),
                 "electric energy stored": v.get("electric energy stored"),
@@ -50,7 +49,7 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
                 "driving mass": v.get("driving mass"),
                 "gross mass": v.get("gross mass"),
                 "capacity utilization": v.get("capacity utilization"),
-                "TtW efficiency": v.get("TtW efficiency"),
+                "range autonomy (km)": v.get("target range"),
             },
             "feats": derive_features_from_vehicle(v),
         }
@@ -90,6 +89,8 @@ def derive_features_from_vehicle(v: dict) -> dict:
     feats["ttw_energy_kwh"] = _safe_float(v.get("TtW energy"))
     feats["ttw_energy_electric_kwh"] = _safe_float(v.get("TtW energy, electric mode"))
     feats["ttw_energy_combustion_kwh"] = _safe_float(v.get("TtW energy, combustion mode"))
+    feats["electricity_type"] = v.get("electricity")
+    feats["hydrogen_type"] = v.get("hydrogen")
 
     # Masses & packaging
     feats["battery_energy_kwh"] = _safe_float(v.get("electric energy stored"))
@@ -102,6 +103,7 @@ def derive_features_from_vehicle(v: dict) -> dict:
 
     # Power / performance
     feats["power_kw"] = _safe_float(v.get("power") or v.get("electric power"))
+    feats["range autonomy_km"] = _safe_float(v.get("target range"))
 
     # Derived metrics (safe guards against None/zero)
     cm = feats.get("curb_mass_kg")

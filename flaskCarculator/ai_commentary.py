@@ -10,34 +10,33 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 SYSTEM_TMPL = """You are an LCA assistant for trucks.
 Compare vehicles on absolute totals for the same indicator ("climate change").
-Use provided stage totals, raw attributes (attrs), and derived features (feats).
-- No normalization across vehicles.
+Always put performance in perspective of capacity utilization and range autonomy.
+- Do NOT normalize or divide totals; ranking is by absolute total only.
+- Use stage totals, attrs, and derived feats to explain differences.
 - Prefer concrete absolute differences first; percentages optional.
-- Keep reasoning short but specific.
 - Respond in {lang_name}.
-Return ONLY JSON with keys: summary, ranking, spread, drivers, recommendations."""
+Return ONLY JSON with keys: summary, ranking, spread, drivers, recommendations, capacity_and_range."""
 
 PROMPT_TMPL = """
 Vehicles (id → {{indicator, total, stages, stage_shares_pct?, attrs, feats}}):
 {veh_payload}
 
-Instructions:
-- Rank vehicles by TOTAL (ascending = best).
+Rules:
+- Rank by TOTAL (ascending = best). Do not alter units or convert.
 - Quantify spread: best, worst, absolute range (worst - best).
-- Explain "drivers" concisely, tying stages to plausible attributes/features:
-  e.g., higher energy chain ↔ higher electricity consumption or lower TTW efficiency;
-        higher road ↔ heavier curb/driving mass or lower payload utilization.
-- If two vehicles are close (|Δ| < {close_threshold}), note they are similar.
-
-For each vehicle, give 1–2 targeted "recommendations" grounded in attrs/feats
-(e.g., reduce kWh/100km via aero/tires; optimize route/payload; lighter spec if feasible).
+- "Drivers": tie stage differences to plausible attrs/feats (e.g., higher energy chain ↔ higher kWh/100km; higher road ↔ heavier mass).
+- "Capacity_and_range": for EACH vehicle, comment on capacity utilization (low/medium/high) and range autonomy:
+    - If feats.capacity_utilization is present, mention it qualitatively and numerically.
+    - If feats.theoretical_range_km is present, report it and whether it likely meets typical duty; if target_range is present, note headroom/shortfall without re-ranking.
+- Do NOT compute impacts per payload or per range; only contextualize.
 
 Output JSON schema:
 {{
-  "summary": "≤160 words",
+  "summary": "≤180 words",
   "ranking": [{{"id":"...","total": number}}],
   "spread": {{"best_id":"...","best_total":number,"worst_id":"...","worst_total":number,"range_abs":number}},
-  "drivers": [{{"id":"...","note":"one sentence citing attributes/features and stages"}}],
+  "drivers": [{{"id":"...","note":"one sentence citing stages and attributes/features"}}],
+  "capacity_and_range": [{{"id":"...","capacity_utilization": "low|medium|high|unknown", "utilization_value": number|null, "range_km_est": number|null, "range_headroom_km": number|null, "note":"short message"}}],
   "recommendations": [{{"id":"...","actions":["...","..."]}}]
 }}
 """
