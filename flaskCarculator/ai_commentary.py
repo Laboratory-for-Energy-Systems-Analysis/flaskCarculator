@@ -104,12 +104,12 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en") -> d
             attrs = veh_payload[vid].get("attrs", {})
             note_bits = []
             if attrs.get("powertrain"): note_bits.append(attrs["powertrain"])
-            if attrs.get("electric energy stored"): note_bits.append(f'bat {attrs["electric energy stored"]}')
+            if attrs.get("electric energy stored"): note_bits.append(f'battery capacity, kWh: {attrs["electric energy stored"]}')
             if attrs.get("electricity consumption"): note_bits.append(f'kWh/100km {attrs["electricity consumption"]}')
             if attrs.get("electricity"): note_bits.append(f'electricity type: {attrs["electricity"]}')
             if attrs.get("fuel consumption"): note_bits.append(f'liters/100km {attrs["fuel consumption"]}')
-            if attrs.get("curb mass"): note_bits.append(f'curb {round(attrs["curb mass"]) }')
-            if attrs.get("target range"): note_bits.append(f'range autonomy {round(attrs["target range"]) } km')
+            if attrs.get("curb mass"): note_bits.append(f'curb mass, kg: {round(attrs["curb mass"]) }')
+            if attrs.get("target range"): note_bits.append(f'range autonomy, km: {round(attrs["target range"]) } km')
             drivers.append({"id": vid, "note": ", ".join(map(str, note_bits)) or "n/a"})
         return {"language": lang, "comparison": {"summary": "Deterministic comparison (no API key).",
                                                  "ranking": ranking, "spread": spread, "drivers": drivers}}
