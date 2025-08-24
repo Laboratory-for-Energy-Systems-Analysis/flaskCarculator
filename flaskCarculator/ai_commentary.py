@@ -15,29 +15,30 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total,
   attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain}},
-  feats:{{theoretical_range_km, range_headroom_km, energy_intensity_kwh_per_km, capacity_utilization_label}}}}):
+  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km}}}}):
 {veh_payload}
 
 Rules:
 - Rank internally by TOTAL (ascending = best) to orient the narrative, but DO NOT output a ranking list.
 - Summary (≤180 words):
     - First sentence must name BEST (lowest total) and WORST (highest total) with their ids and totals.
-    - Put results in perspective using: capacity utilization (use capacity_utilization_label if provided), estimated range autonomy (theoretical_range_km and headroom), and energy intensity/consumption.
+    - Put results in perspective using: capacity utilization (use capacity_utilization_label if provided) and target range autonomy.
     - When relevant, reference energy source context (electricity_type / hydrogen_type / fuel_consumption_l_per_100km / electricity_consumption_kwh_per_100km) to explain differences in climate change totals.
     - Keep factual; do not normalize or invent units.
 
 - Capacity_and_range:
     - For each vehicle: include id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
-      range_km_est (theoretical_range_km if available) and range_headroom_km if available, plus a ≤12-word note.
+      target_range_km as range_km_est, and a ≤12-word note.
 
 Return ONLY this JSON:
 {{
   "summary": "≤180 words",
   "capacity_and_range": [
-    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"range_headroom_km": number|null,"note":"≤12 words"}}
+    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}}
   ]
 }}
 """
+
 
 
 def _extract_json(text: str) -> dict:
@@ -70,7 +71,6 @@ def _pick_lang(language: str) -> str:
     return lang if lang in LANG_NAMES else "en"
 
 def _filter_essentials(veh_payload: dict) -> dict:
-    """Keep only fields needed for summary + capacity/range perspective and energy-source context."""
     KEEP_ATTRS = {
         "capacity_utilization",
         "target_range_km",
@@ -81,11 +81,9 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "powertrain",
     }
     KEEP_FEATS = {
-        "capacity_utilization",              # numeric
-        "capacity_utilization_label",        # low/medium/high (your deterministic label)
+        "capacity_utilization",
+        "capacity_utilization_label",
         "energy_intensity_kwh_per_km",
-        "theoretical_range_km",
-        "range_headroom_km",
     }
 
     slim = {}
@@ -93,12 +91,11 @@ def _filter_essentials(veh_payload: dict) -> dict:
         slim[vid] = {
             "indicator": d.get("indicator"),
             "total": d.get("total"),
-            # stages are optional for this condensed narrative; you can pass them if you still want references
-            # "stages": d.get("stages"),
             "attrs": {k: d.get("attrs", {}).get(k) for k in KEEP_ATTRS if k in d.get("attrs", {})},
             "feats": {k: d.get("feats", {}).get(k) for k in KEEP_FEATS if k in d.get("feats", {})},
         }
     return slim
+
 
 
 def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
@@ -114,15 +111,26 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
                           max_tokens=max_tok, temp=0.2, timeout_s=timeout_s)
 
     if result.get("_error") or not result:
-        # fallback summary with no ranking/spread
-        return {"language": lang,
-                "comparison": {"summary": "Time-limited comparison.",
-                               "capacity_and_range": []}}
+        return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
-    # sanitize: drop unwanted keys
-    for k in ["drivers","ranking","spread","recommendations"]:
+    # Drop unwanted keys and map fields defensively
+    for k in ["drivers", "ranking", "spread", "recommendations", "capacity_and_range_extra", "range_headroom_km"]:
         if k in result:
             result.pop(k, None)
 
+    # Ensure capacity_and_range exists and only keeps allowed fields
+    car = []
+    for item in result.get("capacity_and_range", []):
+        car.append({
+            "id": item.get("id"),
+            "capacity_utilization": item.get("capacity_utilization"),
+            "utilization_value": item.get("utilization_value"),
+            # prefer model's field; otherwise fill from attrs if present later
+            "range_km_est": item.get("range_km_est"),
+            "note": item.get("note"),
+        })
+    result["capacity_and_range"] = car
+
     return {"language": lang, "comparison": result}
+
 

@@ -77,13 +77,9 @@ def _safe_float(x, default=None):
         return default
 
 def derive_features_from_vehicle(v: dict) -> dict:
-    """
-    Build compact, numeric features the model can reason about.
-    Everything is best-effort; missing inputs are okay.
-    """
     feats = {}
 
-    # Basic identity
+    # Identity
     feats["powertrain"] = v.get("powertrain")
     feats["size"] = v.get("size")
     feats["country"] = v.get("country")
@@ -108,12 +104,13 @@ def derive_features_from_vehicle(v: dict) -> dict:
     feats["capacity_utilization"] = _safe_float(v.get("capacity utilization"))
     feats["battery_cell_energy_density_kwh_per_kg"] = _safe_float(v.get("battery cell energy density"))
 
-    # Power / performance
+    # Power
     feats["power_kw"] = _safe_float(v.get("power") or v.get("electric power"))
 
-    # Range (target and theoretical)
+    # Range (reported only)
     feats["target_range_km"] = _safe_float(v.get("target range"))
-    # Derived metrics (safe guards against None/zero)
+
+    # Derived basics
     cm = feats.get("curb_mass_kg")
     gm = feats.get("gross_mass_kg")
     dm = feats.get("driving_mass_kg")
@@ -121,7 +118,20 @@ def derive_features_from_vehicle(v: dict) -> dict:
     cons_el = feats.get("electricity_consumption_kwh_per_100km")
     cons_f = feats.get("fuel_consumption_l_per_100km")
     capu = feats.get("capacity_utilization") or 0.0
+    pwr = feats.get("power_kw") or 0.0
 
+    if gm and gm > 0 and cm is not None:
+        feats["mass_fraction_curb_vs_gross"] = cm / gm
+    if dm and dm > 0 and pwr:
+        feats["power_to_mass_kw_per_t"] = pwr / (dm / 1000.0)
+    if cons_el is not None:
+        feats["energy_intensity_kwh_per_km"] = cons_el / 100.0  # /100 km → /km
+    if cons_f is not None:
+        feats["fuel_intensity_l_per_km"] = cons_f / 100.0
+    if bat and dm and dm > 0:
+        feats["battery_specific_energy_kwh_per_t_vehicle"] = bat / (dm / 1000.0)
+
+    # Capacity utilization label (deterministic)
     cu = feats.get("capacity_utilization")
     if cu is not None:
         if cu < 0.35:
@@ -131,26 +141,9 @@ def derive_features_from_vehicle(v: dict) -> dict:
         else:
             feats["capacity_utilization_label"] = "high"
 
-    pwr = feats.get("power_kw") or 0.0
-
-    if gm and gm > 0 and cm is not None:
-        feats["mass_fraction_curb_vs_gross"] = cm / gm
-    if dm and dm > 0 and pwr:
-        feats["power_to_mass_kw_per_t"] = pwr / (dm / 1000.0)
-    if cons_el is not None:
-        feats["energy_intensity_kwh_per_km"] = cons_el / 100.0  # convert /100km → /km
-    if cons_f is not None:
-        feats["fuel_intensity_l_per_km"] = cons_f / 100.0
-    if bat and dm and dm > 0:
-        feats["battery_specific_energy_kwh_per_t_vehicle"] = bat / (dm / 1000.0)
-
-    # Theoretical BEV range and headroom vs target
-    if bat is not None and feats.get("energy_intensity_kwh_per_km"):
-        feats["theoretical_range_km"] = bat / feats["energy_intensity_kwh_per_km"]
-        if feats.get("target_range_km") is not None:
-            feats["range_headroom_km"] = feats["theoretical_range_km"] - feats["target_range_km"]
-
+    # No theoretical_range_km or range_headroom_km computed anymore
     if capu and capu > 0 and gm:
-        feats["payload_utilization_ratio"] = capu  # already a ratio in your data
+        feats["payload_utilization_ratio"] = capu
 
     return {k: v for k, v in feats.items() if v is not None}
+
