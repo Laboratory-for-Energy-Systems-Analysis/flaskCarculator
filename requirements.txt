@@ -1,5 +1,5 @@
 Flask
-openai
+openai>=1.40.0
 git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_utils.git
 git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator.git
 git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_truck.git
