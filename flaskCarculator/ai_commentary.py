@@ -1,4 +1,4 @@
-# ai_compare.py
+# ai_compare.py (replace the previous content if you like)
 import os, json, time
 from openai import OpenAI
 
@@ -9,34 +9,36 @@ client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 SYSTEM_TMPL = """You are an LCA assistant for trucks.
-Compare vehicles using absolute totals for the *same indicator* ("climate change").
-- Do NOT normalize; use provided totals and stage contributions as-is.
-- Identify best and worst vehicles and the absolute range.
-- Mention concrete absolute differences first (percentages optional).
-- Consider provided attributes (e.g., powertrain, energy stored, consumption, mass, efficiency) to explain *why*.
-- Keep <=140 words total.
+Compare vehicles on absolute totals for the same indicator ("climate change").
+Use provided stage totals, raw attributes (attrs), and derived features (feats).
+- No normalization across vehicles.
+- Prefer concrete absolute differences first; percentages optional.
+- Keep reasoning short but specific.
 - Respond in {lang_name}.
-Return ONLY JSON with keys: summary, ranking, spread, drivers."""
+Return ONLY JSON with keys: summary, ranking, spread, drivers, recommendations."""
 
 PROMPT_TMPL = """
-Vehicles (ID → indicator totals, stage breakdown, attributes):
+Vehicles (id → {{indicator, total, stages, stage_shares_pct?, attrs, feats}}):
 {veh_payload}
 
-Rules:
-- Treat "total" as the sum of stage values (already computed).
-- Do not assume units if not provided; quote numbers plainly (e.g., 0.48).
-- Use attributes only for qualitative explanation (e.g., higher battery → heavier → higher road/energy chain).
+Instructions:
+- Rank vehicles by TOTAL (ascending = best).
+- Quantify spread: best, worst, absolute range (worst - best).
+- Explain "drivers" concisely, tying stages to plausible attributes/features:
+  e.g., higher energy chain ↔ higher electricity consumption or lower TTW efficiency;
+        higher road ↔ heavier curb/driving mass or lower payload utilization.
+- If two vehicles are close (|Δ| < {close_threshold}), note they are similar.
+
+For each vehicle, give 1–2 targeted "recommendations" grounded in attrs/feats
+(e.g., reduce kWh/100km via aero/tires; optimize route/payload; lighter spec if feasible).
 
 Output JSON schema:
 {{
-  "summary": "one concise paragraph comparing all vehicles",
-  "ranking": [{{"id":"...","total": number}}],  // ascending by total (best first)
-  "spread": {{
-     "best_id":"...","best_total":number,
-     "worst_id":"...","worst_total":number,
-     "range_abs":number
-  }},
-  "drivers": [{{"id":"...","note":"one sentence on likely driver(s)"}}]
+  "summary": "≤160 words",
+  "ranking": [{{"id":"...","total": number}}],
+  "spread": {{"best_id":"...","best_total":number,"worst_id":"...","worst_total":number,"range_abs":number}},
+  "drivers": [{{"id":"...","note":"one sentence citing attributes/features and stages"}}],
+  "recommendations": [{{"id":"...","actions":["...","..."]}}]
 }}
 """
 
@@ -48,10 +50,9 @@ def _extract_json(text: str) -> dict:
         if s >= 0 and e >= 0:
             try: return json.loads(text[s:e+1])
             except Exception: pass
-        return {"summary":"","ranking":[],"spread":{},"drivers":[]}
+        return {"summary":"","ranking":[],"spread":{},"drivers":[],"recommendations":[]}
 
-def _call_openai(system: str, prompt: str, max_tokens=450, temp=0.2) -> dict:
-    last = None
+def _call_openai(system: str, prompt: str, max_tokens=650, temp=0.2) -> dict:
     for i in range(3):
         try:
             resp = client.chat.completions.create(
@@ -63,54 +64,42 @@ def _call_openai(system: str, prompt: str, max_tokens=450, temp=0.2) -> dict:
                 response_format={"type":"json_object"},
             )
             return _extract_json(resp.choices[0].message.content)
-        except Exception as e:
-            last = e; time.sleep(0.6*(i+1))
-    return {"summary":"","ranking":[],"spread":{},"drivers":[]}
+        except Exception:
+            time.sleep(0.6*(i+1))
+    return {"summary":"","ranking":[],"spread":{},"drivers":[],"recommendations":[]}
 
 def _pick_lang(language: str) -> str:
     lang = (language or "en").lower()
     return lang if lang in LANG_NAMES else "en"
 
-def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en") -> dict:
+def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="detailed") -> dict:
     """
-    veh_payload structure (already computed by extractor):
-      {
-        "BEEV001": {
-          "indicator": "climate change",
-          "total": 0.482,                # absolute total (sum of stages)
-          "stages": {"energy chain": 0.17545, "road": 0.1588, ...},
-          "attrs":  {"powertrain":"BEV","electric energy stored":725.0, ...}
-        }, ...
-      }
+    veh_payload: dict from build_compare_payload_swisscargo()
     """
     lang = _pick_lang(language)
     system = SYSTEM_TMPL.format(lang_name=LANG_NAMES[lang])
-    prompt = PROMPT_TMPL.format(veh_payload=veh_payload)
-
+    prompt = PROMPT_TMPL.format(veh_payload=veh_payload, close_threshold=0.02)  # tweak threshold to your units/scale
     if client is None:
-        # Deterministic fallback: sort by total, compute spread, add brief notes
-        items = [(vid, d.get("total", float("inf"))) for vid, d in veh_payload.items()]
-        items = [i for i in items if i[1] is not None]
-        items.sort(key=lambda x: x[1])
-        ranking = [{"id": vid, "total": val} for vid, val in items]
+        # deterministic fallback (no API key)
+        items = sorted(((vid, d.get("total", float("inf"))) for vid, d in veh_payload.items()), key=lambda x: x[1])
+        ranking = [{"id": vid, "total": tot} for vid, tot in items]
         spread = {}
         if ranking:
-            best = ranking[0]; worst = ranking[-1]
+            best, worst = ranking[0], ranking[-1]
             spread = {"best_id": best["id"], "best_total": best["total"],
                       "worst_id": worst["id"], "worst_total": worst["total"],
-                      "range_abs": abs(worst["total"] - best["total"])}
+                      "range_abs": worst["total"] - best["total"]}
         drivers = []
         for vid, _ in items[:3]:
-            attrs = veh_payload[vid].get("attrs", {})
-            note_bits = []
-            if attrs.get("powertrain"): note_bits.append(attrs["powertrain"])
-            if attrs.get("electric energy stored"): note_bits.append(f'battery capacity, kWh: {attrs["electric energy stored"]}')
-            if attrs.get("electricity consumption"): note_bits.append(f'kWh/100km {attrs["electricity consumption"]}')
-            if attrs.get("electricity"): note_bits.append(f'electricity type: {attrs["electricity"]}')
-            if attrs.get("fuel consumption"): note_bits.append(f'liters/100km {attrs["fuel consumption"]}')
-            if attrs.get("curb mass"): note_bits.append(f'curb mass, kg: {round(attrs["curb mass"]) }')
-            if attrs.get("target range"): note_bits.append(f'range autonomy, km: {round(attrs["target range"]) } km')
-            drivers.append({"id": vid, "note": ", ".join(map(str, note_bits)) or "n/a"})
+            d = veh_payload[vid]
+            feats = d.get("feats", {})
+            notes = []
+            if feats.get("energy_intensity_kwh_per_km"): notes.append(f'energy/km={round(feats["energy_intensity_kwh_per_km"],3)}')
+            if feats.get("mass_fraction_curb_vs_gross"): notes.append(f'mass_frac={round(feats["mass_fraction_curb_vs_gross"],2)}')
+            if feats.get("power_to_mass_kw_per_t"): notes.append(f'P/M={round(feats["power_to_mass_kw_per_t"],2)}')
+            drivers.append({"id": vid, "note": ", ".join(notes) or "n/a"})
+        recs = [{"id": vid, "actions": ["Optimize routing/payload", "Reduce energy intensity"]} for vid, _ in items[:3]]
         return {"language": lang, "comparison": {"summary": "Deterministic comparison (no API key).",
-                                                 "ranking": ranking, "spread": spread, "drivers": drivers}}
+                                                 "ranking": ranking, "spread": spread,
+                                                 "drivers": drivers, "recommendations": recs}}
     return {"language": lang, "comparison": _call_openai(system, prompt)}
