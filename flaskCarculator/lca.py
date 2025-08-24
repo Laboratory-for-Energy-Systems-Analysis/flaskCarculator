@@ -138,7 +138,7 @@ def set_vehicle_properties_after_run(model, params):
 
 
     if params.get("electricity consumption", 0) > 0:
-        model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100
+        model.array.loc[dict(parameter="electricity consumption")] = (params["electricity consumption"] / 100) * 1.1  # include charging losses
         model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
         model.array.loc[dict(parameter="TtW energy")] = params["electricity consumption"] / 100 * 3600
 
@@ -147,7 +147,7 @@ def set_vehicle_properties_after_run(model, params):
         if "electric energy stored" in model.array.parameter.values:
             model.array.loc[dict(parameter=range_var)] = (
                     model.array.loc[dict(parameter="electric energy stored")]
-                    / model.array.loc[dict(parameter="electricity consumption")]
+                    / params.get("electricity consumption", 0) # exclude charging losses
             ) * model.array.loc[dict(parameter="battery DoD")]
 
 
@@ -175,9 +175,9 @@ def set_properties_for_plugin(model, params):
         model.array.loc[dict(powertrain=params["powertrain"], parameter="electric utility factor")] = params["electric utility factor"]
 
     if "electricity consumption" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = (params["electricity consumption"] / 100) * 1.1 # charging losses
         model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy, electric mode")] = (
-            model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")]
+            (params["electricity consumption"] / 100)
             / model.array.loc[dict(powertrain=params["powertrain"], parameter="electric utility factor")]
         ) * 3600
 
@@ -228,7 +228,10 @@ def set_properties_for_plugin(model, params):
         p = "target range"
 
     model.array.loc[dict(parameter=p)] = (
-        model.array.loc[dict(parameter="electric energy stored")]
+            (
+                model.array.loc[dict(parameter="electric energy stored")]
+                * model.array.loc[dict(parameter="battery DoD")]
+            )
         / model.array.loc[dict(parameter="electricity consumption")]
     ) + (
         model.array.loc[dict(parameter="oxidation energy stored")]
