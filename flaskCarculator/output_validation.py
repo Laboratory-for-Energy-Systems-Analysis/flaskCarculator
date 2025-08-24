@@ -89,9 +89,9 @@ def validate_output_data(data: xr.DataArray, request: dict) -> list:
         if field in request:
             if field in ["fuel consumption", "electricity consumption"]:
                 factor = 100
-                # include charging losses
+                # remove charging losses
                 if field == "electricity consumption":
-                    factor *= 1.1
+                    factor /= 1.1
             else:
                 factor = 1
 
