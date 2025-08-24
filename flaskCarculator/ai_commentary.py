@@ -10,8 +10,10 @@ client = OpenAI(api_key=OPENAI_API_KEY, timeout=10.0) if OPENAI_API_KEY else Non
 LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 # Compact prompt (shorter output = faster)
+# ai_commentary.py
+
 PROMPT_TMPL_COMPACT = """
-Vehicles (id → {{indicator, total, stages, attrs:{capacity_utilization, target_range_km}, feats:{energy_intensity_kwh_per_km, theoretical_range_km, range_headroom_km, curb_mass_kg, driving_mass_kg}}}):
+Vehicles (id → {{indicator, total, stages, attrs:{{capacity_utilization, target_range_km}}, feats:{{energy_intensity_kwh_per_km, theoretical_range_km, range_headroom_km, curb_mass_kg, driving_mass_kg}}}}):
 {veh_payload}
 
 Rules:
@@ -30,6 +32,7 @@ Return ONLY JSON:
   "recommendations": [{{"id":"...","actions":["...","..."]}}]
 }}
 """
+
 
 def _extract_json(text: str) -> dict:
     try:
