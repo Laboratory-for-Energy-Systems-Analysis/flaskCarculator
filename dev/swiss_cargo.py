@@ -26,6 +26,7 @@ data = {
              "kilometers per year": 107000.0,
              "electricity consumption": 1.45,
              "battery lifetime replacement": 0,
+             "func_unit": "vkm",
         },
         {
              "id": "BEEV002",
@@ -39,6 +40,7 @@ data = {
              "kilometers per year": 107000.0,
              "electricity consumption": 1.25,
              "battery lifetime replacement": 0,
+             "func_unit": "vkm",
         },
         # {
         #      "id": "FCEV001",

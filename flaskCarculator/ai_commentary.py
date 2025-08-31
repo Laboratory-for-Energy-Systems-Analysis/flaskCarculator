@@ -47,15 +47,13 @@ Rules:
       range_km_est (use target_range_km), note ≤12 words.
 
 Return ONLY this JSON:
-{
+{{
   "summary": "≤180 words",
   "capacity_and_range": [
-    {"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}
+    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}}
   ]
-}
+}}
 """
-
-
 
 
 def _extract_json(text: str) -> dict:
