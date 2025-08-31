@@ -35,13 +35,15 @@ Rules:
 - Treat vehicles with |Δ total| < {close_band} as "effectively similar".
 - Summary (≤180 words):
     - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
-      displaying totals with 2 decimals using "total_2dp".
+      displaying totals with 2 decimals using "total_2dp" **and** the unit "kgCO2-eq" and the FU,
+      e.g., 0.31 kgCO2-eq per vehicle-kilometer (vkm).
     - Refer to results per the functional unit (e.g., "per vehicle-kilometer (vkm)").
-    - Energy: report **MJ per functional unit** using feats["ttw_energy_mj_per_fu"].
-      Do NOT mention liters or kWh unless MJ is unavailable.
-    - Bring context with capacity utilization (use capacity_utilization_label if present) and target_range_km.
+    - **Energy wording:** say **"tank-to-wheel energy"** (not "ttw energy") and report it in **MJ per FU**
+      using feats["ttw_energy_mj_per_fu"].
+    - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as
+      capacity_utilization × 100; still use capacity_utilization_label when relevant.
     - Where helpful, cite top_stages (e.g., "road", "energy chain") to ground the reasoning.
-    - Keep factual; no invented units. Round sensibly (totals 2 decimals; ranges whole km; MJ/FU 1–2 decimals).
+    - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals.
 - Capacity_and_range:
     - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
       range_km_est (use target_range_km), note ≤12 words.
@@ -54,6 +56,7 @@ Return ONLY this JSON:
   ]
 }}
 """
+
 
 
 def _extract_json(text: str) -> dict:
@@ -155,7 +158,9 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     - Do NOT mention liters or kWh unless MJ is unavailable.
 
     Totals display policy:
-    - When citing totals, display "total_2dp" (two decimals), not raw "total".
+    - When citing totals, display "total_2dp" (two decimals) with "kgCO2-eq" and the FU
+      (e.g., 0.31 kgCO2-eq per {fu_label} ({fu_code})).
+    - Use the phrase "tank-to-wheel energy", not "ttw energy".
     """
 
     result = _call_openai(
