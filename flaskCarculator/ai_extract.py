@@ -63,6 +63,7 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
                 "gross_mass_kg": veh.get("gross mass"),
                 "capacity_utilization": veh.get("capacity utilization"),
                 "target_range_km": veh.get("target range"),
+                "func_unit": veh["func unit"],
                 "top_stages": _top_stage_contributors(stages, n=2),
             },
             "feats": derive_features_from_vehicle(veh),
@@ -82,6 +83,12 @@ def _safe_float(x, default=None):
         return float(x)
     except Exception:
         return default
+
+def _kj_to_mj(x):
+    try:
+        return float(x) / 1000.0
+    except Exception:
+        return None
 
 def derive_features_from_vehicle(v: dict) -> dict:
     feats = {}
@@ -151,6 +158,21 @@ def derive_features_from_vehicle(v: dict) -> dict:
     # No theoretical_range_km or range_headroom_km computed anymore
     if capu and capu > 0 and gm:
         feats["payload_utilization_ratio"] = capu
+
+    # Tank-to-wheel energy is given in kJ per vkm
+    ttw_energy_kj_per_vkm = _safe_float(v.get("TtW energy"))
+    feats["ttw_energy_kj_per_vkm"] = ttw_energy_kj_per_vkm
+
+    fu = (v.get("func unit") or "vkm").lower()
+    cargo_mass_kg = _safe_float(v.get("cargo mass"))
+
+    if ttw_energy_kj_per_vkm is not None:
+        if fu == "vkm":
+            feats["ttw_energy_mj_per_fu"] = ttw_energy_kj_per_vkm / 1000.0
+        elif fu == "tkm":
+            if cargo_mass_kg and cargo_mass_kg > 0:
+                cargo_mass_tons = cargo_mass_kg / 1000.0
+                feats["ttw_energy_mj_per_fu"] = (ttw_energy_kj_per_vkm / cargo_mass_tons) / 1000.0
 
     return {k: v for k, v in feats.items() if v is not None}
 

@@ -12,32 +12,47 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 # Compact prompt (shorter output = faster)
 # ai_commentary.py
 
+FU_NAME_MAP = {"tkm": "ton-kilometer", "vkm": "vehicle-kilometer"}
+
+def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
+    counts = {"vkm": 0, "tkm": 0}
+    for _, d in slim_payload.items():
+        fu = (d.get("attrs", {}).get("func_unit") or "").lower()
+        if fu in counts:
+            counts[fu] += 1
+    chosen = max(counts, key=counts.get) if any(counts.values()) else fallback
+    mixed = (sum(1 for v in counts.values() if v > 0) > 1)
+    return chosen, mixed
+
 PROMPT_TMPL_COMPACT = """
-Vehicles (id → {{indicator, total,
-  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages}},
-  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km}}}}):
+Vehicles (id → {{indicator, total, total_2dp,
+  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
+  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}}}}):
 {veh_payload}
 
 Rules:
 - Internally sort by TOTAL (ascending = best) to orient your narrative. DO NOT output a ranking list.
 - Treat vehicles with |Δ total| < {close_band} as "effectively similar".
 - Summary (≤180 words):
-    - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals.
+    - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
+      displaying totals with 2 decimals using "total_2dp".
+    - Refer to results per the functional unit (e.g., "per vehicle-kilometer (vkm)").
+    - Energy: report **MJ per functional unit** using feats["ttw_energy_mj_per_fu"].
+      Do NOT mention liters or kWh unless MJ is unavailable.
     - Bring context with capacity utilization (use capacity_utilization_label if present) and target_range_km.
-    - Use energy context: electricity_type / hydrogen_type / fuel_consumption_l_per_100km / electricity_consumption_kwh_per_100km to explain differences.
     - Where helpful, cite top_stages (e.g., "road", "energy chain") to ground the reasoning.
-    - Keep factual; no normalization or invented units. Round numbers sensibly (e.g., totals to 3 decimals; ranges as whole km).
+    - Keep factual; no invented units. Round sensibly (totals 2 decimals; ranges whole km; MJ/FU 1–2 decimals).
 - Capacity_and_range:
     - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
       range_km_est (use target_range_km), note ≤12 words.
 
 Return ONLY this JSON:
-{{
+{
   "summary": "≤180 words",
   "capacity_and_range": [
-    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}}
+    {"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}
   ]
-}}
+}
 """
 
 
@@ -81,12 +96,14 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "electricity_type",
         "hydrogen_type",
         "powertrain",
-        "top_stages",  # NEW
+        "top_stages",
+        "func_unit",  # ← NEW
     }
     KEEP_FEATS = {
         "capacity_utilization",
         "capacity_utilization_label",
         "energy_intensity_kwh_per_km",
+        "ttw_energy_mj_per_fu",  # ← NEW
     }
     slim = {}
     for vid, d in veh_payload.items():
@@ -117,13 +134,35 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     system = f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. Use only provided numbers. Output strict JSON."
 
     slim_payload = _filter_essentials(veh_payload)
+
+    # Add 2-decimal display total for narration
+    for vid, d in slim_payload.items():
+        d["total_2dp"] = _round_or_none(d.get("total"), nd=2)
+
+    # Resolve the functional unit from vehicle attrs (majority wins)
+    fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
+    fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
+
     vcount = max(1, len(slim_payload))
     max_tok = 500 if vcount <= 3 else 700
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
+    prompt = PROMPT_TMPL_COMPACT.format(veh_payload=payload_str, close_band=0.02) + f"""
+
+    Functional unit (FU): "{fu_label}" (code: {fu_code}).
+    If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
+
+    Energy reporting policy:
+    - Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
+    - Do NOT mention liters or kWh unless MJ is unavailable.
+
+    Totals display policy:
+    - When citing totals, display "total_2dp" (two decimals), not raw "total".
+    """
+
     result = _call_openai(
         system=system,
-        prompt=PROMPT_TMPL_COMPACT.format(veh_payload=payload_str, close_band=0.02),
+        prompt=prompt,
         max_tokens=max_tok,
         temp=0.2,
         timeout_s=timeout_s
