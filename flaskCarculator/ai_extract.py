@@ -63,7 +63,7 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
                 "gross_mass_kg": veh.get("gross mass"),
                 "capacity_utilization": veh.get("capacity utilization"),
                 "target_range_km": veh.get("target range"),
-                "func_unit": veh["func unit"],
+                "func_unit": veh["func_unit"],
                 "top_stages": _top_stage_contributors(stages, n=2),
             },
             "feats": derive_features_from_vehicle(veh),
@@ -163,7 +163,7 @@ def derive_features_from_vehicle(v: dict) -> dict:
     ttw_energy_kj_per_vkm = _safe_float(v.get("TtW energy"))
     feats["ttw_energy_kj_per_vkm"] = ttw_energy_kj_per_vkm
 
-    fu = (v.get("func unit") or "vkm").lower()
+    fu = (v.get("func_unit") or "vkm").lower()
     cargo_mass_kg = _safe_float(v.get("cargo mass"))
 
     if ttw_energy_kj_per_vkm is not None:
