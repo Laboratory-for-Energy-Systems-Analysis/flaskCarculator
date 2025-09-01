@@ -100,10 +100,24 @@ def calculate_lca():
         "total cargo mass",
         "driving mass",
         "gross mass",
+
     ]
 
     if data.get("nomenclature") == "swisscargo":
         default_vehicle_parameters.extend([
+            "glider cost",
+            "lightweighting cost",
+            "electric powertrain cost",
+            "combustion powertrain cost",
+            "fuel cell cost",
+            "fuel cell cost per kW",
+            "power battery cost",
+            "energy battery cost",
+            "energy battery cost per kWh",
+            "tank cost",
+            "fuel tank cost per kg",
+            "energy cost per kWh",
+            "purchase cost",
             "energy cost",
             "amortised purchase cost",
             "maintenance cost",
