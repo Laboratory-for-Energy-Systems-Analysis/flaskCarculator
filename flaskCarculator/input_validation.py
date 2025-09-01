@@ -280,11 +280,12 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
                 new_vehicle["size"] = SWISSCARGO_SIZE[vehicle["size"]]
 
         if vehicle["powertrain"] in ("BEV", "PHEV-d"):
-            electricity_cost = (
-                vehicle["electricity cost (daily charger)"] * (1 - vehicle["share km occasional charger"])
-                + vehicle["electricity cost (occasional charger)"] * vehicle["share km occasional charger"]
-            )
-            new_vehicle["energy cost per kWh"] = electricity_cost
+            if all(x in vehicle for x in ("electricity cost (daily charger)", "electricity cost (occasional charger)", "share km occasional charger")):
+                electricity_cost = (
+                    vehicle["electricity cost (daily charger)"] * (1 - vehicle["share km occasional charger"])
+                    + vehicle["electricity cost (occasional charger)"] * vehicle["share km occasional charger"]
+                )
+                new_vehicle["energy cost per kWh"] = electricity_cost
 
         if vehicle["powertrain"] == "FCEV":
             new_vehicle["energy cost per kWh"] = vehicle["hydrogen cost"] / 120 * 3.6  # converts from kg to kWh
