@@ -114,11 +114,6 @@ def validate_output_data(data: xr.DataArray, request: dict, nomenclature: str) -
                     errors.append(f"Vehicle {request['id']} has invalid value for field {field}."
                                   f" Expected {request[field]}, got {data.array.sel(parameter=field, value=0, powertrain=request['powertrain']).values}"
                                   f"{d}")
-                else:
-                    if field not in ("range",):
-                        errors.append(f"Vehicle {request['id']} has invalid value for field {field}."
-                                      f" Expected {request[field]}, got {data.array.sel(parameter=field, value=0, powertrain=request['powertrain']).values}"
-                                      f"{d}")
 
     # check that available payload is still positive
     if "gross mass" in data.array.coords['parameter'].values:
