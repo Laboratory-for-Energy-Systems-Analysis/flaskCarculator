@@ -136,7 +136,9 @@ def validate_input_data(data: dict) -> list:
         "share depot charging",
         "depot charger power",
         "trucks per depot charger",
-        "insurance cost"
+        "insurance cost",
+        "energy cost per kWh (depot)",
+        "energy cost per kWh (public)",
     ]
 
 
