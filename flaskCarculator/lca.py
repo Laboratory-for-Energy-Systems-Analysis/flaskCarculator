@@ -524,7 +524,6 @@ def initialize_model(params, nomenclature=None):
         m = set_vehicle_properties_after_run(m, params)
     print(f"Electric energy stored just AFTER set_vehicle_properties_after_run(): {m['electric energy stored'].values} kWh")
 
-
     if "capacity" in m.energy_storage:
         m.override_battery_capacity()
     # redimension_battery_and_range(m, params)
