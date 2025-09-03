@@ -333,6 +333,7 @@ def set_properties_for_plugin(model, params):
 def redimension_battery_and_range(m, params):
     if params.get("electric energy stored", 0) > 0:
         m["electric energy stored"] = params["electric energy stored"]
+        print(f"Redimensioning battery to {m['electric energy stored'].values} kWh")
         m["battery cell mass"] = (
             m["electric energy stored"] / m["battery cell energy density"]
         )
@@ -391,6 +392,8 @@ def initialize_model(params, nomenclature=None):
             },
         }
 
+        print(f"Energy storage set to: {energy_storage}")
+
     if params.get("battery technology", None):
         if energy_storage is None:
             energy_storage = {}
@@ -399,6 +402,8 @@ def initialize_model(params, nomenclature=None):
                 "battery technology"
             ]
         }
+
+        print(f"Battery storage set to: {energy_storage}")
 
     power = None
 
