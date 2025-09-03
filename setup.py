@@ -13,6 +13,8 @@ setup(
         'carculator_two_wheeler',
         'carculator_bus',
         'carculator_utils',
+        'requests',
+        'openai'
 
     ],
     entry_points={
