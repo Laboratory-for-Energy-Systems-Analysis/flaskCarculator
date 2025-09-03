@@ -357,6 +357,7 @@ def redimension_battery_and_range(m, params):
                 m.array.loc[dict(parameter=var)] = params[var]
 
 
+
 def initialize_model(params, nomenclature=None):
     """
     Initializes and returns a CarModel instance with the given parameters.
