@@ -159,7 +159,14 @@ def calculate_lca():
         vehicle["indicator type"] = model.inventory.indicator
         vehicle["scenario"] = model.inventory.scenario
         vehicle["functional unit"] = model.inventory.func_unit
-        vehicle["carculator version"] = ".".join(map(str, model.version))
+
+        carculator_model_labels = {
+            "truck": "carculator_truck",
+            "car": "carculator",
+            "bus": "carculator_bus",
+            "two-wheeler": "carculator_two_wheeler"
+        }
+        vehicle[f"{carculator_model_labels[vehicle['vehicle_type']]} version"] = ".".join(map(str, model.version))
         vehicle["ecoinvent version"] = model.ecoinvent_version
         vehicle["country"] = data["country_code"]
 

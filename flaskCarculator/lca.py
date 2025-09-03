@@ -351,6 +351,8 @@ def redimension_battery_and_range(m, params):
             m.calculate_ttw_energy()
             m.drop_hybrid()
 
+            print(f"After Redimensioning battery: {m['electric energy stored'].values} kWh")
+
             if params.get(var, 0) > 0:
                 m.array.loc[dict(parameter=var)] = params[var]
 
@@ -504,9 +506,15 @@ def initialize_model(params, nomenclature=None):
         electric_utility_factor=uf,
     )
 
+    print(f"Electric energy stored just AFTER set_all(): {m['electric energy stored'].values} kWh")
+
     m = set_vehicle_properties_before_run(m, params)
 
+    print(f"Electric energy stored just AFTER set_vehicle_properties_before_run(): {m['electric energy stored'].values} kWh")
+
     m.set_all()
+
+    print(f"Electric energy stored just AFTER set_all(): {m['electric energy stored'].values} kWh")
 
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
