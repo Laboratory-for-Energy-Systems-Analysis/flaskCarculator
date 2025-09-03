@@ -521,6 +521,7 @@ def initialize_model(params, nomenclature=None):
 
     if params["powertrain"] not in ["PHEV-d", "PHEV-p"]:
         m = set_vehicle_properties_after_run(m, params)
+    print(f"Electric energy stored just AFTER set_vehicle_properties_after_run(): {m['electric energy stored'].values} kWh")
 
     # redimension_battery_and_range(m, params)
 
@@ -593,8 +594,8 @@ def initialize_model(params, nomenclature=None):
     # using the BFU LCA database
 
     if nomenclature in (
-        "tcs",
-        "swisscargo",
+            "tcs",
+            "swisscargo",
     ):
         df = load_bafu_emission_factors()
         m.inventory.B.values = np.zeros(m.inventory.B.shape)
