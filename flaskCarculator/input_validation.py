@@ -281,20 +281,25 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
 
         if vehicle["powertrain"] in ("BEV", "PHEV-d"):
             if all(x in vehicle for x in ("electricity cost (daily charger)", "electricity cost (occasional charger)", "share km occasional charger")):
-                electricity_cost = (
-                    vehicle["electricity cost (daily charger)"] * (1 - vehicle["share km occasional charger"])
-                    + vehicle["electricity cost (occasional charger)"] * vehicle["share km occasional charger"]
-                )
-                new_vehicle["energy cost per kWh"] = electricity_cost
+                new_vehicle["energy cost per kWh (public)"] = vehicle["electricity cost (occasional charger)"]
+                new_vehicle["energy cost per kWh (depot)"] = vehicle["electricity cost (daily charger)"]
+                new_vehicle["share depot charging"] = 1 - vehicle["share km occasional charger"]
+
+
+            if "daily charger" in vehicle:
+                new_vehicle["depot charger power"] = vehicle["daily charger"]
+
+            if "trucks using daily charger" in vehicle:
+                new_vehicle["trucks per depot charger"] = vehicle["trucks using daily charger"]
 
         if vehicle["powertrain"] == "FCEV":
-            new_vehicle["energy cost per kWh"] = vehicle["hydrogen cost"] / 120 * 3.6  # converts from kg to kWh
+            new_vehicle["energy cost per kWh (public)"] = vehicle["hydrogen cost"] / 120 * 3.6  # converts from kg to kWh
 
         if vehicle["powertrain"] == "CNG":
-            new_vehicle["energy cost per kWh"] = vehicle["CNG cost"] / 47.5 * 3.6
+            new_vehicle["energy cost per kWh (public)"] = vehicle["CNG cost"] / 47.5 * 3.6
 
         if vehicle["powertrain"] in ["ICEV-d", "HEV-d"]:
-            new_vehicle["energy cost per kWh"] = vehicle["fuel cost"] / FUEL_SPECS["ICEV-d"]["lhv"] * 3.6
+            new_vehicle["energy cost per kWh (public)"] = vehicle["fuel cost"] / FUEL_SPECS["ICEV-d"]["lhv"] * 3.6
 
         for k, v in SWISSCARGO_PARAMETERS.items():
             if k in vehicle:

@@ -103,13 +103,33 @@ def set_vehicle_properties_before_run(model, params):
             params["fuel tank volume"] * fuel_density
         )
 
-    if params.get("energy cost per kWh", 0) > 0:
-        model.array.loc[dict(parameter="energy cost per kWh")] = params[
-            "energy cost per kWh"
-        ]
-
     if params.get("purchase cost", 0) > 0:
         model.array.loc[dict(parameter="purchase cost")] = params["purchase cost"]
+
+    if params.get("energy cost per kWh (public)", 0) > 0:
+        model.array.loc[dict(parameter="energy cost per kWh (public)")] = params[
+            "energy cost per kWh (public)"
+        ]
+
+    if params.get("energy cost per kWh (depot)", 0) > 0:
+        model.array.loc[dict(parameter="energy cost per kWh (depot)")] = params[
+            "energy cost per kWh (depot)"
+        ]
+
+    if params.get("share depot charging", None) is not None:
+        model.array.loc[dict(parameter="share depot charging")] = params[
+            "share depot charging"
+        ]
+
+    if params.get("maintenance cost", 0) > 0:
+        model.array.loc[dict(parameter="maintenance cost")] = params["maintenance cost"]
+
+    if params.get("insurance cost", 0) > 0:
+        model.array.loc[dict(parameter="insurance cost")] = params["insurance cost"]
+
+    if params.get("interest rate", 0) > 0:
+        model.array.loc[dict(parameter="interest rate")] = params["interest rate"]
+
 
     return model
 

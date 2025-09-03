@@ -106,25 +106,36 @@ def calculate_lca():
 
     ]
 
+    cost_results_parameters = [
+        "energy cost",
+        "energy infrastructure cost",
+        "amortised purchase cost",
+        "maintenance cost",
+        "insurance cost",
+        "toll cost",
+        "CO2 tax cost",
+        "amortised component replacement cost",
+        "amortised residual credit",
+    ]
+
     if data.get("nomenclature") == "swisscargo":
         default_vehicle_parameters.extend([
-            "glider cost",
-            "lightweighting cost",
-            "electric powertrain cost",
+            "energy cost per kWh (depot)",
+            "energy cost per kWh (public)",
+            "share depot charging",
+            "interest rate",
+            "battery onboard charging infrastructure cost",
+            "combustion exhaust treatment cost",
             "combustion powertrain cost",
-            "fuel cell cost",
-            "fuel cell cost per kW",
-            "power battery cost",
+            "electric powertrain cost",
             "energy battery cost",
-            "energy battery cost per kWh",
-            "tank cost",
-            "fuel tank cost per kg",
-            "energy cost per kWh",
+            "fuel cell cost",
+            "fuel tank cost",
+            "glider cost",
+            "heat pump cost",
+            "lightweighting cost",
+            "power battery cost",
             "purchase cost",
-            "energy cost",
-            "amortised purchase cost",
-            "maintenance cost",
-            "amortised component replacement cost"
         ])
 
     import gc
@@ -140,6 +151,11 @@ def calculate_lca():
             vehicle["results_bafu"] = format_results_for_tcs(data=model, params=vehicle, bafu=True)
         elif data.get("nomenclature") == "swisscargo":
             vehicle["results"] = format_results_for_swisscargo(data=model, params=vehicle)
+            # add cost results
+            factor = 1 if model.inventory.func_unit == "vkm" else (1 / (model.array.sel(parameter="cargo mass").values.item() / 1000))
+            vehicle["cost_results"] = {
+                p: model.costs.sel(parameter=p).mean().values.item() * factor for p in cost_results_parameters
+            }
         else:
             vehicle["results"] = serialize_xarray(model.results)
 
