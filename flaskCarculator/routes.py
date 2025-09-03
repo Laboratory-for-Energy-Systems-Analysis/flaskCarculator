@@ -154,7 +154,7 @@ def calculate_lca():
             # add cost results
             factor = 1 if model.inventory.func_unit == "vkm" else (1 / (model.array.sel(parameter="cargo mass").values.item() / 1000))
             vehicle["cost_results"] = {
-                p: model.costs.sel(parameter=p).mean().values.item() * factor for p in cost_results_parameters
+                p: model.array.sel(parameter=p).mean().values.item() * factor for p in cost_results_parameters
             }
         else:
             vehicle["results"] = serialize_xarray(model.results)
