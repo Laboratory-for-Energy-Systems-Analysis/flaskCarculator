@@ -511,7 +511,7 @@ def initialize_model(params, nomenclature=None):
 
     # redimension_battery_and_range(m, params)
 
-    errors = validate_output_data(data=m, request=params)
+    errors = validate_output_data(data=m, request=params, nomenclature=nomenclature)
 
     inventory = models[params["vehicle_type"]]["inventory"]
 
