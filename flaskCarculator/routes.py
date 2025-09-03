@@ -34,6 +34,9 @@ def calculate_lca():
         (request.headers.get("Accept-Language") or "en").split(",")[0].split("-")[0]
     )
 
+    from pprint import pprint
+    pprint(data)
+
     # Validate the received data
     data, validation_errors = validate_input(data)
     if len(validation_errors) > 0:
