@@ -30,9 +30,14 @@ Vehicles (id → {{indicator, total, total_2dp,
   feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}}}}):
 {veh_payload}
 
+{stage_glossary}
+
 Rules:
 - Internally sort by TOTAL (ascending = best) to orient your narrative. DO NOT output a ranking list.
 - Treat vehicles with |Δ total| < {close_band} as "effectively similar".
+- When referencing stages in attrs["top_stages"]:
+    - If you mention "road", explicitly call it "road infrastructure construction & upkeep (embodied)".
+    - "energy chain" must be described as the upstream energy supply chain (production + delivery) for the relevant carrier.
 - Summary (≤180 words):
     - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
       displaying totals with 2 decimals using "total_2dp" **and** the unit "kgCO2-eq" and the FU,
@@ -42,11 +47,13 @@ Rules:
       using feats["ttw_energy_mj_per_fu"].
     - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as
       capacity_utilization × 100; still use capacity_utilization_label when relevant.
-    - Where helpful, cite top_stages (e.g., "road", "energy chain") to ground the reasoning.
+    - Where helpful, cite top_stages (e.g., "energy chain", "road infrastructure") to ground the reasoning.
     - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals.
 - Capacity_and_range:
     - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
       range_km_est (use target_range_km), note ≤12 words.
+
+{capacity_utilization_note}
 
 Return ONLY this JSON:
 {{
@@ -132,15 +139,16 @@ def _int_or_none(x):
 
 def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
     lang = _pick_lang(language)
-    system = f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. Use only provided numbers. Output strict JSON."
+    system = (
+        f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
+        "Use only provided numbers. Output strict JSON. "
+        "Do not conflate capacity utilization with mechanical efficiency."
+    )
 
     slim_payload = _filter_essentials(veh_payload)
-
-    # Add 2-decimal display total for narration
     for vid, d in slim_payload.items():
         d["total_2dp"] = _round_or_none(d.get("total"), nd=2)
 
-    # Resolve the functional unit from vehicle attrs (majority wins)
     fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
 
@@ -148,7 +156,12 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     max_tok = 500 if vcount <= 3 else 700
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
-    prompt = PROMPT_TMPL_COMPACT.format(veh_payload=payload_str, close_band=0.02) + f"""
+    prompt = PROMPT_TMPL_COMPACT.format(
+        veh_payload=payload_str,
+        close_band=0.02,
+        stage_glossary=STAGE_GLOSSARY.strip(),
+        capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
+    ) + f"""
 
     Functional unit (FU): "{fu_label}" (code: {fu_code}).
     If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
