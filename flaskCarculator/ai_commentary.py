@@ -12,11 +12,11 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 # Put near the top
 DETAIL_CONFIG = {
-    "compact":  {"word_limit": 180, "max_tokens": 700,  "include_appendix": False},
-    "standard": {"word_limit": 300, "max_tokens": 1000, "include_appendix": True},
-    "deep":     {"word_limit": 600, "max_tokens": 1600, "include_appendix": True},
+    "compact":   {"word_limit": 180, "max_tokens": 700,  "include_appendix": False},
+    "standard":  {"word_limit": 300, "max_tokens": 1000, "include_appendix": True},
+    "deep":      {"word_limit": 600, "max_tokens": 1600, "include_appendix": True},
+    "narrative": {"word_limit": 600, "max_tokens": 1600, "include_appendix": False},
 }
-
 # Compact prompt (shorter output = faster)
 # ai_commentary.py
 
@@ -90,17 +90,15 @@ Rules:
 - When referencing stages in attrs["top_stages"]:
     - If you mention "road", explicitly call it "road infrastructure construction & upkeep (embodied)".
     - "energy chain" must be described as the upstream energy supply chain (production + delivery) for the relevant carrier.
-- Summary (≤{word_limit} words):
-    - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
-      displaying totals with 2 decimals using "total_2dp" **and** the unit "kgCO2-eq" and the FU,
-      e.g., 0.31 kgCO2-eq per vehicle-kilometer (vkm).
-    - Include ONE short **cost** sentence: name the lowest-cost and highest-cost vehicles with their total cost in CHF per {fu_code}, and name the dominant cost component for each (from cost.components or cost.shares_pct).
-    - Refer to results per the functional unit (e.g., "per vehicle-kilometer (vkm)").
-    - **Energy wording:** say **"tank-to-wheel energy"** (not "ttw energy") and report it in **MJ per FU** using feats["ttw_energy_mj_per_fu"].
-    - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as capacity_utilization × 100; still use capacity_utilization_label when relevant.
-    - Where helpful, cite top_stages (e.g., "energy chain", "road infrastructure") to ground the reasoning.
-    - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals; costs 2 decimals.
 
+- Summary (≤{word_limit} words):
+    - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per FU).
+    - Add ONE concise **cost** sentence: lowest- vs highest-cost vehicles with totals in CHF per {fu_code} and their dominant cost driver(s).
+    - Interpret stage drivers: explain what “energy chain” and “road infrastructure construction & upkeep (embodied)” mean and how they shape differences.
+    - Discuss **tank-to-wheel energy** in MJ per FU and relate it to results where relevant.
+    - Explain **capacity utilization** as a logistics load factor (%, no decimals) and how changes (e.g., ±10 percentage points) would qualitatively shift per-FU results.
+    - Note any mixed functional units (if detected) and avoid cross-unit comparisons.
+    - Keep factual; round totals to 2 decimals; ranges whole km; MJ/FU to 1–2 decimals; costs to 2 decimals.
 If additional detail is requested, include an "appendix" object with the sections below. Omit "appendix" entirely if insufficient data.
 
 Appendix spec (only when detailed):
@@ -108,6 +106,8 @@ Appendix spec (only when detailed):
 - "stage_breakdown": per vehicle, top stages and stage_shares_pct (if provided).
 - "per_vehicle": concise facts per id (GHG total, tank-to-wheel energy, capacity utilization %, short note).
 - "notes": short bullet points on assumptions/limits (e.g., mixed FUs, missing costs).
+
+Write the summary as 3–5 short paragraphs: (1) overall ranking & magnitudes, (2) costs, (3) stage drivers, (4) energy & utilization, (5) caveats.
 
 Return ONLY this JSON:
 {{
@@ -216,42 +216,41 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
 
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
-    appendix_clause = APPENDIX_JSON_CLAUSE.format(fu_code=fu_code) if cfg["include_appendix"] else ""
+    appendix_clause = "" if not cfg["include_appendix"] else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
+
     prompt = PROMPT_TMPL_COMPACT.format(
         veh_payload=payload_str,
         close_band=0.02,
         stage_glossary=STAGE_GLOSSARY.strip(),
         capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
         cost_policy=COST_POLICY.strip().format(fu_code=fu_code),
-        word_limit=cfg["word_limit"],
+        word_limit=cdfg["word_limit"],  # ← make sure spelled correctly
         fu_code=fu_code,
         appendix_clause=appendix_clause,
     ) + f"""
-
-Functional unit (FU): "{fu_label}" (code: {fu_code}).
-If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
-
-Energy reporting policy:
-- Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
-- Do NOT mention liters or kWh unless MJ is unavailable.
-
-Totals display policy:
-- When citing totals, display "total_2dp" with "kgCO2-eq" per {fu_label} ({fu_code}).
-- Use the phrase "tank-to-wheel energy", not "ttw energy".
-"""
+        Functional unit (FU): "{fu_label}" (code: {fu_code}).
+        If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
+        
+        Energy reporting policy:
+        - Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
+        - Do NOT mention liters or kWh unless MJ is unavailable.
+        
+        Totals display policy:
+        - When citing totals, display "total_2dp" with "kgCO2-eq" per {fu_label} ({fu_code}).
+        - Use the phrase "tank-to-wheel energy", not "ttw energy".
+    """
 
     result = _call_openai(
         system=system,
         prompt=prompt,
         max_tokens=cfg["max_tokens"],
         temp=0.2,
-        timeout_s=max(timeout_s, 20.0 if detail != "compact" else timeout_s),  # a bit more headroom
+        timeout_s=max(timeout_s, 20.0 if cfg["max_tokens"] > 1000 else timeout_s),
     )
 
     if result.get("_error") or not result:
         return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
-    # Keep your existing sanitizer; just pass through appendix if present
     cleaned = {
         "summary": (result.get("summary") or "").strip(),
         "capacity_and_range": [],
@@ -264,9 +263,7 @@ Totals display policy:
             "range_km_est": _int_or_none(item.get("range_km_est")),
             "note": (item.get("note") or "").strip()[:60],
         })
-    if "appendix" in result:
-        cleaned["appendix"] = result["appendix"]
-
+    # DO NOT pass through 'appendix' at all
     return {"language": lang, "comparison": cleaned}
 
 
