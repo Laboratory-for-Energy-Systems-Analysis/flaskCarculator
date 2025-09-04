@@ -224,7 +224,7 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
         stage_glossary=STAGE_GLOSSARY.strip(),
         capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
         cost_policy=COST_POLICY.strip().format(fu_code=fu_code),
-        word_limit=cdfg["word_limit"],  # ← make sure spelled correctly
+        word_limit=cfg["word_limit"],
         fu_code=fu_code,
         appendix_clause=appendix_clause,
     ) + f"""
