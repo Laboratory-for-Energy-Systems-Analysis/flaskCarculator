@@ -258,19 +258,19 @@ def ai_compare_across_vehicles_swisscargo(
     # ---- hard guard: never accept <= 0 or tiny budgets
     budget = float(timeout_s) if timeout_s and timeout_s > 0 else 6.0
     # reserve a little time for JSON cleaning & return
-    api_budget = max(1.5, budget - 1.0)  # seconds for the API call (read timeout)
+    api_budget = max(1.5, min(5.0, budget - 6.0))  # seconds for the API call (read timeout)
 
     cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"]).copy()
     lang = _pick_lang(language)
 
     # Dynamically clamp tokens if little time remains
-    # (token generation time grows roughly with max_tokens)
+    # Aggressive clamping for speed
     if api_budget < 6.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 600), 400)
-        cfg["word_limit"] = min(cfg.get("word_limit", 250), 180)
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 300), 220)
+        cfg["word_limit"] = min(cfg.get("word_limit", 180), 140)
     if api_budget < 3.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 400), 256)
-        cfg["word_limit"] = min(cfg.get("word_limit", 180), 120)
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 220), 160)
+        cfg["word_limit"] = min(cfg.get("word_limit", 140), 110)
 
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
@@ -281,7 +281,22 @@ def ai_compare_across_vehicles_swisscargo(
 
     slim_payload = _filter_essentials(veh_payload)
     for vid, d in slim_payload.items():
-        d["total_2dp"] = _round_or_none(d.get("total"), nd=2)
+        # round totals to 2 dp; remove None entries
+        d["total"] = _round_or_none(d.get("total"), nd=2)
+        d["attrs"] = {k: v for k, v in d.get("attrs", {}).items() if v not in (None, "", [], {})}
+        d["feats"] = {k: v for k, v in d.get("feats", {}).items() if v not in (None, "", [], {})}
+        if "cost" in d:
+            # keep only totals + top 2 components if present
+            c = d["cost"]
+            keep = {"currency": c.get("currency"), "total": c.get("total"), "per_fu": c.get("per_fu")}
+            comps = c.get("components") or {}
+            # keep top 2 biggest components if you have shares
+            if c.get("shares_pct"):
+                top2 = sorted(c["shares_pct"].items(), key=lambda it: it[1], reverse=True)[:2]
+                keep["components"] = {k: comps.get(k) for k, _ in top2 if k in comps}
+            else:
+                keep["components"] = comps  # or prune by a fixed list
+            d["cost"] = keep
 
     fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
@@ -291,15 +306,16 @@ def ai_compare_across_vehicles_swisscargo(
 
     appendix_clause = "" if not cfg.get("include_appendix") else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
 
+    include_glossary = api_budget >= 4.0
     prompt = PROMPT_TMPL_COMPACT.format(
         veh_payload=payload_str,
         close_band=0.02,
-        stage_glossary=STAGE_GLOSSARY.strip(),
-        capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
-        cost_policy=COST_POLICY.strip().format(fu_code=fu_code),
+        stage_glossary=STAGE_GLOSSARY.strip() if include_glossary else "",
+        capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip() if include_glossary else "",
+        cost_policy=COST_POLICY.strip(),
         word_limit=cfg["word_limit"],
         fu_code=fu_code,
-        appendix_clause=appendix_clause,
+        appendix_clause=""  # omit appendix under tight budgets
     ) + f"""
         Functional unit (FU): "{fu_label}" (code: {fu_code}).
         If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
