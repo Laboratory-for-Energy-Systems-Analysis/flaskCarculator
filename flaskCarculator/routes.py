@@ -212,22 +212,20 @@ def calculate_lca():
     if ai_compare and data.get("nomenclature") == "swisscargo":
         payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
 
-        # compute remaining wall time and a safe AI slice
-        RESPONSE_BUFFER = 6.0  # time to JSON-serialize, send response, network wiggle
-        MIN_AI_BUDGET = 3.5  # won’t call AI unless we can give it at least this
+        RESPONSE_BUFFER = 8.0  # time to JSON, send, jitter
+        MIN_AI_BUDGET = 4.0  # won't call AI unless we can give this much
         remaining = deadline - time.monotonic()
         ai_budget = remaining - RESPONSE_BUFFER
 
         if ai_budget >= MIN_AI_BUDGET:
-            # cap the AI call budget to something small & predictable
-            ai_timeout = min(5.0, ai_budget)
+            ai_timeout = min(7.5, ai_budget)  # allow up to ~7.5 s
             data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
                 payload, language=ai_language, detail="compact", timeout_s=ai_timeout
             )
             data["ai_timing"] = {
                 "remaining_before_ai_s": round(remaining, 2),
                 "ai_budget_s": round(ai_timeout, 2)
-            }  # optional: keep for debugging, remove later
+            }  # keep while debugging
         else:
             data["ai_comparison_note"] = (
                 f"Skipped AI (remaining={remaining:.2f}s, needs ≥{MIN_AI_BUDGET + RESPONSE_BUFFER:.1f}s)."
