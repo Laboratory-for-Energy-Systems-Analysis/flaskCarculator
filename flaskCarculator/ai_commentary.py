@@ -245,20 +245,23 @@ def ai_compare_across_vehicles_swisscargo(
 ) -> dict:
     # ---- hard guard: never accept <= 0 or tiny budgets
     budget = float(timeout_s) if timeout_s and timeout_s > 0 else 6.0
-    # reserve a little time for JSON cleaning & return
-    api_budget = max(1.5, min(5.0, budget - 6.0))  # seconds for the API call (read timeout)
+    # Use (almost) the full slice the route gave us; cap to something sane if you want.
+    api_budget = max(1.8, min(budget - 0.3, 12.0))  # e.g., 7.2s when budget=7.5
 
     cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"]).copy()
     lang = _pick_lang(language)
 
     # Dynamically clamp tokens if little time remains
     # Aggressive clamping for speed
-    if api_budget < 6.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 300), 220)
-        cfg["word_limit"] = min(cfg.get("word_limit", 180), 140)
-    if api_budget < 3.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 220), 160)
-        cfg["word_limit"] = min(cfg.get("word_limit", 140), 110)
+    if api_budget <= 3.0:
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 160)
+        cfg["word_limit"] = min(cfg.get("word_limit", 180), 90)
+    elif api_budget <= 5.0:
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 200)
+        cfg["word_limit"] = min(cfg.get("word_limit", 180), 110)
+    else:
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 220)
+        cfg["word_limit"] = min(cfg.get("word_limit", 180), 120)
 
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
