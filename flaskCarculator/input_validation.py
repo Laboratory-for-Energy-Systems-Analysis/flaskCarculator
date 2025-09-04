@@ -322,6 +322,11 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
                 if k not in new_vehicle:
                     new_vehicle[k] = v
 
+        # fix "insurance cost" and "maintenance cost" which are received as annual costs, but expected to be per km
+        for p in ["insurance cost", "maintenance cost"]:
+            if p in new_vehicle and "kilometers per year" in new_vehicle:
+                new_vehicle[p] = new_vehicle[p] / new_vehicle["kilometers per year"]
+
         translated_data.append(new_vehicle)
 
     data["vehicles"] = translated_data

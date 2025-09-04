@@ -170,7 +170,6 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
     def _blended_electricity_ef():
         """Return the electricity EF to use (kg CO2e/kWh) after blending, if needed."""
-        print(f"electricity param: '{electricity_param}'")
         pv_grid = _parse_pv_grid_mix(electricity_param)
         grid_ef = _electricity_grid_ef()
         if pv_grid is None:  # "grid" or any other legacy value -> treat as pure grid
@@ -181,8 +180,6 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     # ------------------------------------------------------------------------
 
     blended_elec_ef = _blended_electricity_ef()
-
-    print(f"Using blended electricity EF of {blended_elec_ef:.2f} kg CO2e/kWh.")
 
     factor = 1
     if "func_unit" in params and params["func_unit"] == "tkm":
