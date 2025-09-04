@@ -167,8 +167,6 @@ def calculate_lca():
         else:
             vehicle["results"] = serialize_xarray(model.results)
 
-
-
         # harvest parameters (unchanged logic, but read from `model`)
         for p in default_vehicle_parameters:
             if p in model.array.parameter.values:

@@ -71,6 +71,7 @@ data = {
               "fuel consumption": 32,
         #      #"battery lifetime replacement": 0,
                "func_unit": "tkm",
+                "fuel cost": 1.8,
         },
         # {
         #      "id": "ICEV002",
