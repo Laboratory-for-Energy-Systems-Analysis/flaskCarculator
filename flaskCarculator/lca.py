@@ -536,9 +536,12 @@ def initialize_model(params, nomenclature=None):
 
     m = set_vehicle_properties_before_run(m, params)
 
+    print("share tolled roads BEFORE", m["share tolled roads"])
+
     print(f"Electric energy stored just AFTER set_vehicle_properties_before_run(): {m['electric energy stored'].values} kWh")
 
     m.set_all()
+    print("share tolled roads AFTER", m["share tolled roads"])
 
     print(f"Electric energy stored just AFTER set_all(): {m['electric energy stored'].values} kWh")
 

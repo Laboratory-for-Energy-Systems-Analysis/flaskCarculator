@@ -84,6 +84,7 @@ data = {
             "resale_year": 2028,
             "cargo mass": 20000,
             "canton": "Aargau",
+            "share tolled roads": 0.0
         },
         # {
         #      "id": "ICEV002",
