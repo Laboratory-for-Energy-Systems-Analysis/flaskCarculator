@@ -197,7 +197,11 @@ def calculate_lca():
             "two-wheeler": "carculator_two_wheeler"
         }
         vehicle[f"{carculator_model_labels[vehicle['vehicle_type']]} version"] = ".".join(map(str, model.version))
-        vehicle["ecoinvent version"] = model.ecoinvent_version
+
+        if data.get("nomenclature", "carculator") in ("swisscargo", "tcs"):
+            vehicle["LCA background database"] = "UVEK 2022"
+        else:
+            vehicle["LCA background database"] = f"ecoinvent - cutoff - {model.ecoinvent_version}"
         vehicle["country"] = data["country_code"]
 
         # --- free memory NOW ---
