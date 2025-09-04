@@ -4,7 +4,7 @@ import time
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
-from .swiss_cargo_costs import calculate_lsva_charge_period
+from .swiss_cargo_costs import calculate_lsva_charge_period, canton_truck_tax
 import json
 import numpy as np
 from collections import OrderedDict
@@ -163,6 +163,12 @@ def calculate_lca():
 
             # add LSVA/RPLP road charge calculation
             vehicle["cost_results"]["CO2 tax cost"] =  lsva_costs["cost_per_km_chf"] * factor
+            vehicle["total road_charge_chf"] = lsva_costs["total_charge_chf"]
+
+            # add cantonal road charge
+            canton_road_charge = canton_truck_tax(vehicle)
+            vehicle["cost_results"]["canton road charge cost"] = canton_road_charge["chf_per_km"] * factor
+            vehicle["total canton road charge"] = canton_road_charge["total_tax_chf"]
 
         else:
             vehicle["results"] = serialize_xarray(model.results)

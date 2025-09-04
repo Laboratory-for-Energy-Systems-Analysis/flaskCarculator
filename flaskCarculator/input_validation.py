@@ -285,6 +285,7 @@ def translate_swisscargo_to_carculator(data: dict) -> dict:
         if "size" in vehicle:
             if vehicle["size"] in SWISSCARGO_SIZE:
                 new_vehicle["size"] = SWISSCARGO_SIZE[vehicle["size"]]
+                new_vehicle["original class name"] = vehicle["size"]
 
         if vehicle["powertrain"] in ("BEV", "PHEV-d"):
             if all(x in vehicle for x in ("electricity cost (daily charger)", "electricity cost (occasional charger)", "share km occasional charger")):

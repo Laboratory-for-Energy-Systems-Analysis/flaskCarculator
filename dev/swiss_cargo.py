@@ -27,6 +27,8 @@ data = {
              "electricity consumption": 145,
              "battery lifetime replacement": 0,
              "func_unit": "tkm",
+            "purchase_year": 2023,
+            "resale_year": 2028,
         },
         {
              "id": "BEEV002",
@@ -41,6 +43,8 @@ data = {
              "electricity consumption": 125,
              "battery lifetime replacement": 0,
              "func_unit": "tkm",
+            "purchase_year": 2023,
+            "resale_year": 2028,
         },
         # {
         #      "id": "FCEV001",
@@ -72,6 +76,8 @@ data = {
         #      #"battery lifetime replacement": 0,
                "func_unit": "tkm",
                 "fuel cost": 1.8,
+            "purchase_year": 2023,
+            "resale_year": 2028,
         },
         # {
         #      "id": "ICEV002",
