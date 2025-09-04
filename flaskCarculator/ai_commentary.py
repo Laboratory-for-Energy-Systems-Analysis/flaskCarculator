@@ -144,38 +144,48 @@ def _get_openai_client():
         # Generous default; retries OFF to avoid hidden delays
         _OPENAI_CLIENT = OpenAI(
             api_key=OPENAI_API_KEY,
-            timeout=Timeout(connect=3.0, read=30.0, write=10.0),  # large defaults
+            timeout=Timeout(connect=3.0, read=30.0, write=10.0, pool=3.0),  # large defaults
             max_retries=0,
         )
     return _OPENAI_CLIENT
 
-def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
+def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
     try:
         client = _get_openai_client()
     except Exception as e:
-        return {"_error": f"AuthError: {e}"}
+        return {"_error": f"ClientInitError: {e}"}  # don't call this AuthError
 
     try:
-        # Per-request timeout that *overrides* the generous client default
-        per_req_timeout = Timeout(connect=3.0, read=max(1.5, timeout_s), write=5.0)
+        per_req_timeout = Timeout(
+            connect=3.0,
+            read=max(1.5, float(timeout_s)),   # your small read budget
+            write=5.0,
+            pool=3.0,
+        )
+
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
-            messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
             max_tokens=int(max_tokens),
             temperature=float(temp) if temp is not None else 0.2,
             response_format={"type": "json_object"},
-            timeout=per_req_timeout,  # IMPORTANT
+            timeout=per_req_timeout,  # ✔ valid Timeout
         )
         msg = resp.choices[0].message
         data = msg.parsed if getattr(msg, "parsed", None) else json.loads(getattr(msg, "content", "") or "{}")
         if not isinstance(data, dict):
             return {"_error": "Model returned non-JSON response"}
-        data.setdefault("summary",""); data.setdefault("capacity_and_range",[])
+        data.setdefault("summary", ""); data.setdefault("capacity_and_range", [])
         return data
+
     except json.JSONDecodeError as e:
         return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
+
 
 def _pick_lang(language: str) -> str:
     lang = (language or "en").lower()
