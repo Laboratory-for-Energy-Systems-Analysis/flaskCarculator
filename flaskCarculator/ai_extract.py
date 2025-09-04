@@ -18,35 +18,29 @@ def _sum_numeric(d: dict, exclude=("category",)):
     return s
 
 def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) -> dict:
-    """
-    Returns a dict keyed by vehicle id with:
-      - total (absolute)
-      - stages (absolute)
-      - (optional) stage_shares_pct
-      - attrs (raw) and feats (derived)
-    """
     out = {}
     for veh in vehicles:
         vid = veh.get("id")
         if not vid:
             continue
 
-        # find climate change block
-        cc = None
-        for r in (veh.get("results") or []):
-            if r.get("category") == "climate change":
-                cc = r
-                break
+        # climate change block (unchanged)
+        cc = next((r for r in (veh.get("results") or []) if r.get("category") == "climate change"), None)
         if not cc:
             continue
 
-        # totals & stages
         total = _sum_numeric(cc, exclude=("category",))
-        stages = {
-            k: float(val)
-            for k, val in cc.items()
-            if k != "category" and isinstance(val, (int, float))
-        }
+        stages = {k: float(val) for k, val in cc.items() if k != "category" and isinstance(val, (int, float))}
+
+        # ---- NEW: cost payload (CHF per FU) ----
+        raw_costs = veh.get("cost_results") or {}
+        cost_components = {k: float(v) for k, v in raw_costs.items() if isinstance(v, (int, float))}
+        cost_total = sum(cost_components.values()) if cost_components else None
+        cost_shares_pct = None
+        if cost_components:
+            s = sum(cost_components.values())
+            if s and s > 0:
+                cost_shares_pct = {k: 100.0 * v / s for k, v in cost_components.items()}
 
         payload = {
             "indicator": "climate change",
@@ -67,6 +61,14 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
                 "top_stages": _top_stage_contributors(stages, n=2),
             },
             "feats": derive_features_from_vehicle(veh),
+            # ---- NEW block passed to the model ----
+            "cost": {
+                "currency": "CHF",
+                "per_fu": veh.get("func_unit") or "vkm",
+                "total": cost_total,                # CHF per FU
+                "components": cost_components,      # dict of CHF per FU
+                "shares_pct": cost_shares_pct,      # optional
+            },
         }
 
         if include_stage_shares and stages:
@@ -76,6 +78,7 @@ def build_compare_payload_swisscargo(vehicles: list, include_stage_shares=True) 
 
         out[vid] = payload
     return out
+
 
 
 def _safe_float(x, default=None):

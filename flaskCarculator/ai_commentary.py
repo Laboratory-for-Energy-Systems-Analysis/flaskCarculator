@@ -40,13 +40,28 @@ Capacity utilization policy (authoritative):
 - Do NOT equate capacity utilization with efficiency; treat it as a demand allocation factor over the functional unit.
 """
 
+COST_POLICY = """
+Cost payload semantics (authoritative):
+- The "cost" block contains CHF per functional unit (FU) for each vehicle.
+- "total" is the total cost per FU; "components" is a per-FU breakdown (e.g., energy cost, purchase amortisation, maintenance, tolls, canton road charge).
+- When you mention costs, always state: value + "CHF per {fu_code}".
+- Be concise: one sentence comparing cost-best vs cost-worst and naming the top cost driver for each.
+- Do NOT invent missing values; only use provided numbers.
+"""
+
+
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total, total_2dp,
   attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
-  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}}}}):
+  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}},
+  cost:{{currency, per_fu, total, components, shares_pct}}}}):
 {veh_payload}
 
 {stage_glossary}
+
+{capacity_utilization_note}
+
+{cost_policy}
 
 Rules:
 - Internally sort by TOTAL (ascending = best) to orient your narrative. DO NOT output a ranking list.
@@ -58,18 +73,15 @@ Rules:
     - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
       displaying totals with 2 decimals using "total_2dp" **and** the unit "kgCO2-eq" and the FU,
       e.g., 0.31 kgCO2-eq per vehicle-kilometer (vkm).
+    - Include ONE short **cost** sentence: name the lowest-cost and highest-cost vehicles with their total cost in CHF per {fu_code}, and name the dominant cost component for each (from cost.components or cost.shares_pct).
     - Refer to results per the functional unit (e.g., "per vehicle-kilometer (vkm)").
-    - **Energy wording:** say **"tank-to-wheel energy"** (not "ttw energy") and report it in **MJ per FU**
-      using feats["ttw_energy_mj_per_fu"].
-    - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as
-      capacity_utilization × 100; still use capacity_utilization_label when relevant.
+    - **Energy wording:** say **"tank-to-wheel energy"** (not "ttw energy") and report it in **MJ per FU** using feats["ttw_energy_mj_per_fu"].
+    - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as capacity_utilization × 100; still use capacity_utilization_label when relevant.
     - Where helpful, cite top_stages (e.g., "energy chain", "road infrastructure") to ground the reasoning.
-    - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals.
+    - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals; costs 2 decimals.
 - Capacity_and_range:
     - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
       range_km_est (use target_range_km), note ≤12 words.
-
-{capacity_utilization_note}
 
 Return ONLY this JSON:
 {{
@@ -79,6 +91,7 @@ Return ONLY this JSON:
   ]
 }}
 """
+
 
 
 
@@ -121,13 +134,13 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "hydrogen_type",
         "powertrain",
         "top_stages",
-        "func_unit",  # ← NEW
+        "func_unit",
     }
     KEEP_FEATS = {
         "capacity_utilization",
         "capacity_utilization_label",
         "energy_intensity_kwh_per_km",
-        "ttw_energy_mj_per_fu",  # ← NEW
+        "ttw_energy_mj_per_fu",
     }
     slim = {}
     for vid, d in veh_payload.items():
@@ -137,7 +150,14 @@ def _filter_essentials(veh_payload: dict) -> dict:
             "attrs": {k: d.get("attrs", {}).get(k) for k in KEEP_ATTRS if k in d.get("attrs", {})},
             "feats": {k: d.get("feats", {}).get(k) for k in KEEP_FEATS if k in d.get("feats", {})},
         }
+        # ---- NEW: cost passthrough ----
+        if "cost" in d:
+            slim[vid]["cost"] = d["cost"]
+        # keep stage shares if you find them useful in narration
+        if "stage_shares_pct" in d:
+            slim[vid]["stage_shares_pct"] = d["stage_shares_pct"]
     return slim
+
 
 
 def _round_or_none(x, nd=3):
@@ -158,7 +178,8 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
         "Use only provided numbers. Output strict JSON. "
-        "Do not conflate capacity utilization with mechanical efficiency."
+        "Do not conflate capacity utilization with mechanical efficiency. "
+        "When reporting costs, use CHF per FU exactly as provided."
     )
 
     slim_payload = _filter_essentials(veh_payload)
@@ -177,8 +198,8 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
         close_band=0.02,
         stage_glossary=STAGE_GLOSSARY.strip(),
         capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
+        cost_policy=COST_POLICY.strip(),
     ) + f"""
-
     Functional unit (FU): "{fu_label}" (code: {fu_code}).
     If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
 
