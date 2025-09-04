@@ -134,6 +134,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
         if not m:
             return None
         x, y = int(m.group(1)), int(m.group(2))
+        print(f"Interpreting electricity param '{s}' as {x}% own PV, {y}% grid.")
         total = x + y if (x + y) > 0 else 100
         return (x / total, y / total)
 
