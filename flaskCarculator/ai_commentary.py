@@ -129,7 +129,6 @@ def _extract_json(text: str) -> dict:
             except Exception: pass
         return {}
 
-_client = None
 
 def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
     global _client

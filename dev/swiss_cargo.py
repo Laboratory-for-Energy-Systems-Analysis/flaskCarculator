@@ -82,7 +82,7 @@ data = {
                 "fuel cost": 1.8,
             "purchase_year": 2023,
             "resale_year": 2028,
-            "cargo mass": 20000,
+            "payload": 20000,
             "canton": "Aargau",
             "share tolled roads": 0.0
         },
