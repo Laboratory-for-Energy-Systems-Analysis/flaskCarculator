@@ -9,6 +9,14 @@ client = OpenAI(api_key=OPENAI_API_KEY, timeout=10.0) if OPENAI_API_KEY else Non
 
 LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
+
+# Put near the top
+DETAIL_CONFIG = {
+    "compact":  {"word_limit": 180, "max_tokens": 700,  "include_appendix": False},
+    "standard": {"word_limit": 300, "max_tokens": 1000, "include_appendix": True},
+    "deep":     {"word_limit": 600, "max_tokens": 1600, "include_appendix": True},
+}
+
 # Compact prompt (shorter output = faster)
 # ai_commentary.py
 
@@ -49,18 +57,31 @@ Cost payload semantics (authoritative):
 - Do NOT invent missing values; only use provided numbers.
 """
 
+APPENDIX_JSON_CLAUSE = """,
+  "appendix": {{
+    "cost_overview": [
+      {{"id":"...","total_chf_per_{fu_code}": number|null,"top_cost_drivers": ["energy cost","amortised purchase", "..."]}}
+    ],
+    "stage_breakdown": [
+      {{"id":"...","top_stages":["energy chain","road infrastructure (embodied)"],"stage_shares_pct": {{ "energy chain": number, "road": number }} }}
+    ],
+    "per_vehicle": [
+      {{"id":"...","ghg_total_kgco2e_per_{fu_code}": number,"tank_to_wheel_mj_per_{fu_code}": number|null,"capacity_utilization_pct": number|null,"note":"≤18 words"}}
+    ],
+    "notes": ["short bullet 1","short bullet 2"]
+  }}"""
 
+# Replace your PROMPT_TMPL_COMPACT with this (only the tail is new)
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total, total_2dp,
   attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
   feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}},
-  cost:{{currency, per_fu, total, components, shares_pct}}}}):
+  cost:{{currency, per_fu, total, components, shares_pct}},
+  stage_shares_pct:{{... optional ...}}}}):
 {veh_payload}
 
 {stage_glossary}
-
 {capacity_utilization_note}
-
 {cost_policy}
 
 Rules:
@@ -69,7 +90,7 @@ Rules:
 - When referencing stages in attrs["top_stages"]:
     - If you mention "road", explicitly call it "road infrastructure construction & upkeep (embodied)".
     - "energy chain" must be described as the upstream energy supply chain (production + delivery) for the relevant carrier.
-- Summary (≤180 words):
+- Summary (≤{word_limit} words):
     - First sentence: explicitly state BEST (lowest total) and WORST (highest total) with ids and totals,
       displaying totals with 2 decimals using "total_2dp" **and** the unit "kgCO2-eq" and the FU,
       e.g., 0.31 kgCO2-eq per vehicle-kilometer (vkm).
@@ -79,20 +100,23 @@ Rules:
     - **Capacity utilization:** present as percentages with no decimals (e.g., 43%), computed as capacity_utilization × 100; still use capacity_utilization_label when relevant.
     - Where helpful, cite top_stages (e.g., "energy chain", "road infrastructure") to ground the reasoning.
     - Keep factual; no invented units. Round: totals 2 decimals; ranges whole km; MJ/FU to 1–2 decimals; costs 2 decimals.
-- Capacity_and_range:
-    - For each vehicle: id, capacity_utilization (low|medium|high|unknown + numeric utilization_value if available),
-      range_km_est (use target_range_km), note ≤12 words.
+
+If additional detail is requested, include an "appendix" object with the sections below. Omit "appendix" entirely if insufficient data.
+
+Appendix spec (only when detailed):
+- "cost_overview": per vehicle, total cost and its top 1–2 drivers (use cost.shares_pct or components).
+- "stage_breakdown": per vehicle, top stages and stage_shares_pct (if provided).
+- "per_vehicle": concise facts per id (GHG total, tank-to-wheel energy, capacity utilization %, short note).
+- "notes": short bullet points on assumptions/limits (e.g., mixed FUs, missing costs).
 
 Return ONLY this JSON:
 {{
-  "summary": "≤180 words",
+  "summary": "≤{word_limit} words",
   "capacity_and_range": [
     {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}}
-  ]
+  ]{appendix_clause}
 }}
 """
-
-
 
 
 def _extract_json(text: str) -> dict:
@@ -174,6 +198,7 @@ def _int_or_none(x):
 
 
 def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
+    cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"])
     lang = _pick_lang(language)
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
@@ -189,58 +214,60 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
 
-    vcount = max(1, len(slim_payload))
-    max_tok = 500 if vcount <= 3 else 700
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
+    appendix_clause = APPENDIX_JSON_CLAUSE.format(fu_code=fu_code) if cfg["include_appendix"] else ""
     prompt = PROMPT_TMPL_COMPACT.format(
         veh_payload=payload_str,
         close_band=0.02,
         stage_glossary=STAGE_GLOSSARY.strip(),
         capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
-        cost_policy=COST_POLICY.strip().format(fu_code=fu_code),  # ← pre-format inner block
-        fu_code=fu_code,  # ← satisfy {fu_code} in PROMPT_TMPL_COMPACT
+        cost_policy=COST_POLICY.strip().format(fu_code=fu_code),
+        word_limit=cfg["word_limit"],
+        fu_code=fu_code,
+        appendix_clause=appendix_clause,
     ) + f"""
 
-    Functional unit (FU): "{fu_label}" (code: {fu_code}).
-    If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
+Functional unit (FU): "{fu_label}" (code: {fu_code}).
+If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
 
-    Energy reporting policy:
-    - Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
-    - Do NOT mention liters or kWh unless MJ is unavailable.
+Energy reporting policy:
+- Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
+- Do NOT mention liters or kWh unless MJ is unavailable.
 
-    Totals display policy:
-    - When citing totals, display "total_2dp" (two decimals) with "kgCO2-eq" and the FU
-      (e.g., 0.31 kgCO2-eq per {fu_label} ({fu_code})).
-    - Use the phrase "tank-to-wheel energy", not "ttw energy".
-    """
+Totals display policy:
+- When citing totals, display "total_2dp" with "kgCO2-eq" per {fu_label} ({fu_code}).
+- Use the phrase "tank-to-wheel energy", not "ttw energy".
+"""
 
     result = _call_openai(
         system=system,
         prompt=prompt,
-        max_tokens=max_tok,
+        max_tokens=cfg["max_tokens"],
         temp=0.2,
-        timeout_s=timeout_s
+        timeout_s=max(timeout_s, 20.0 if detail != "compact" else timeout_s),  # a bit more headroom
     )
 
     if result.get("_error") or not result:
         return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
-    # sanitize: only keep allowed keys
-    for k in ["drivers", "ranking", "spread", "recommendations", "range_headroom_km"]:
-        result.pop(k, None)
-
-    # round numbers and ensure target range appears as integer km
-    cleaned = {"summary": result.get("summary", "").strip(), "capacity_and_range": []}
+    # Keep your existing sanitizer; just pass through appendix if present
+    cleaned = {
+        "summary": (result.get("summary") or "").strip(),
+        "capacity_and_range": [],
+    }
     for item in result.get("capacity_and_range", []):
         cleaned["capacity_and_range"].append({
             "id": item.get("id"),
             "capacity_utilization": item.get("capacity_utilization"),
             "utilization_value": _round_or_none(item.get("utilization_value"), nd=3),
             "range_km_est": _int_or_none(item.get("range_km_est")),
-            "note": (item.get("note") or "").strip()[:60]
+            "note": (item.get("note") or "").strip()[:60],
         })
+    if "appendix" in result:
+        cleaned["appendix"] = result["appendix"]
 
     return {"language": lang, "comparison": cleaned}
+
 
 

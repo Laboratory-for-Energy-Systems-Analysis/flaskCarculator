@@ -216,7 +216,7 @@ def calculate_lca():
                 data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
             else:
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload, language=ai_language, detail="compact", timeout_s=min(10.0, remaining - 1.0)
+                    payload, language=ai_language, detail="deep", timeout_s=min(10.0, remaining - 1.0)
                 )
         except Exception as e:
             data["ai_comparison_error"] = str(e)
