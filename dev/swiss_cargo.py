@@ -118,4 +118,3 @@ if response.status_code == 200:
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
     print("Error:", response.text)
-

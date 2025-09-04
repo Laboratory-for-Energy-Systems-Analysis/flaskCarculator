@@ -141,7 +141,8 @@ def validate_input_data(data: dict) -> list:
         "energy cost per kWh (public)",
         "purchase cost",
         "purchase_year",
-        "resale_year"
+        "resale_year",
+        "share tolled roads"
     ]
 
     errors = []
