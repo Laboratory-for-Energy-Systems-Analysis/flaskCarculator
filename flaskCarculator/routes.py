@@ -212,7 +212,7 @@ def calculate_lca():
         try:
             payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
             remaining = max(3.0, deadline - time.time())  # seconds left for AI
-            if remaining < 4.0:
+            if remaining < 6.0:
                 data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
             else:
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
