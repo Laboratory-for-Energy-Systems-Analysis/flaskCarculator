@@ -35,6 +35,40 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
     return chosen, mixed
 
 
+
+# Strict output schema via function calling
+COMPARE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "emit_swisscargo_compare",
+        "description": "Emit a structured comparison summary for SwissCargo.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["summary", "capacity_and_range"],
+            "properties": {
+                "summary": {"type": "string"},
+                "capacity_and_range": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["id","capacity_utilization","utilization_value","range_km_est","note"],
+                        "properties": {
+                            "id": {"type":"string"},
+                            "capacity_utilization": {"type":"string","enum":["low","medium","high","unknown"]},
+                            "utilization_value": {"type":["number","null"]},
+                            "range_km_est": {"type":["integer","null"]},
+                            "note": {"type":"string"}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 # Strict JSON schema for the output we expect
 AI_JSON_SCHEMA = {
     "name": "swisscargo_compare",
@@ -185,46 +219,50 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
     except Exception as e:
         return {"_error": f"ClientInitError: {e}"}
 
+    # keep output big enough to fit the JSON; small floor prevents truncation
+    max_tokens = max(140, int(max_tokens or 160))
+
     try:
-        # You can keep your per-request httpx.Timeout if you like; a float also works:
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=int(max_tokens),
-            temperature=float(temp) if temp is not None else 0.0,  # reduce creativity
-            response_format={"type": "json_schema", "json_schema": AI_JSON_SCHEMA},  # ← STRICT schema
-            timeout=float(timeout_s),
+            tools=[COMPARE_TOOL],
+            tool_choice={"type": "function", "function": {"name": "emit_swisscargo_compare"}},
+            temperature=0.0,                # deterministic + schema-friendly
+            max_tokens=max_tokens,
+            timeout=float(timeout_s),       # per-request budget
             n=1,
         )
 
-        msg = resp.choices[0].message
+        choice = resp.choices[0]
+        tcalls = getattr(choice.message, "tool_calls", None)
 
-        if getattr(msg, "parsed", None):
-            data = msg.parsed
+        if tcalls and len(tcalls) > 0:
+            args = tcalls[0].function.arguments  # this is a JSON string
+            data = json.loads(args)
         else:
-            content = (getattr(msg, "content", "") or "").strip()
-            # As a fallback, strip fences and try again
-            if content.startswith("```"):
-                # remove ```json\n ... ``` wrappers
-                content = content.strip("`")
-                if content.lower().startswith("json"):
-                    content = content[4:].lstrip()
-            data = json.loads(content) if content else {}
+            # Fallback: try normal content if tool call didn't trigger
+            content = (getattr(choice.message, "content", "") or "").strip()
+            if not content:
+                return {"_error": "Empty model response"}
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                # Last resort: salvage inner {...}
+                data = _extract_json(content)
 
         if not isinstance(data, dict):
             return {"_error": "Model returned non-JSON response"}
 
         data.setdefault("summary", "")
-        data.setdefault("capacity_and_range", [])
-        if not isinstance(data["capacity_and_range"], list):
+        if not isinstance(data.get("capacity_and_range"), list):
             data["capacity_and_range"] = []
         return data
 
     except json.JSONDecodeError as e:
-        # Optional: include a small snippet to debug shape
         return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
