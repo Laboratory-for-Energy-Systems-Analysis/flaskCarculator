@@ -131,6 +131,7 @@ def set_vehicle_properties_before_run(model, params):
         model.array.loc[dict(parameter="interest rate")] = params["interest rate"]
 
     if params.get("share tolled roads", 0) > 0:
+        print(f"Setting share tolled roads to {params['share tolled roads']}")
         model.array.loc[dict(parameter="share tolled roads")] = params[
             "share tolled roads"
         ]
