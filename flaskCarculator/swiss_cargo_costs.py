@@ -374,7 +374,7 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
         annual = _ticino_annual(float(vehicle_data["power"]))
         notes.append("Ticino formula: 105 + 10 × power_kW.")
 
-    elif canton in {"graubuenden", "graubunden", "gr"}:
+    elif canton in {"graubuenden", "graubunden", "gr", "grisons"}:
         annual = _graubuenden_annual(weight_kg, pt)
         notes.append("Graubünden: EV/(H)EV trucks taxed at 20% of Category-2 weight tariff.")
 

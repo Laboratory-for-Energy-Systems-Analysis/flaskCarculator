@@ -29,6 +29,7 @@ data = {
              "func_unit": "tkm",
             "purchase_year": 2023,
             "resale_year": 2028,
+             "canton": "Zurich",
         },
         {
              "id": "BEEV002",
@@ -45,6 +46,7 @@ data = {
              "func_unit": "tkm",
             "purchase_year": 2023,
             "resale_year": 2028,
+            "canton": "Valais",
         },
         # {
         #      "id": "FCEV001",
@@ -67,6 +69,7 @@ data = {
               "year": 2023,
               "size": "32t",
               "powertrain": "ICEV-d",
+                "power": 235,
         #      #"battery technology": "NMC-811",
         #      #"electric energy stored": 300.0,
               "lifetime kilometers": 300000.0,
@@ -78,6 +81,7 @@ data = {
                 "fuel cost": 1.8,
             "purchase_year": 2023,
             "resale_year": 2028,
+            "canton": "Ticino",
         },
         # {
         #      "id": "ICEV002",

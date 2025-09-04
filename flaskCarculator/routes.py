@@ -163,12 +163,12 @@ def calculate_lca():
 
             # add LSVA/RPLP road charge calculation
             vehicle["cost_results"]["CO2 tax cost"] =  lsva_costs["cost_per_km_chf"] * factor
-            vehicle["total road_charge_chf"] = lsva_costs["total_charge_chf"]
+            vehicle["road charge details"] = lsva_costs
 
             # add cantonal road charge
             canton_road_charge = canton_truck_tax(vehicle)
             vehicle["cost_results"]["canton road charge cost"] = canton_road_charge["chf_per_km"] * factor
-            vehicle["total canton road charge"] = canton_road_charge["total_tax_chf"]
+            vehicle["canton tax details"] = canton_road_charge
 
         else:
             vehicle["results"] = serialize_xarray(model.results)
