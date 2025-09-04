@@ -136,11 +136,10 @@ def calculate_lsva_charge_period(vehicle_data: Dict[str, Any]) -> Dict[str, Any]
     }
 
 def _normalize_canton(s: str) -> str:
-    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = unicodedata.normalize("NFKD", s).encode("ascii","ignore").decode("ascii")
     return s.strip().lower()
 
 def _parse_tonnes(size) -> Optional[float]:
-    """Accepts '40t', '40 t', 40, 40.0 → tonnes as float. Returns None if not parseable."""
     if size is None:
         return None
     if isinstance(size, (int, float)):
@@ -149,7 +148,7 @@ def _parse_tonnes(size) -> Optional[float]:
     if s.endswith("t"):
         s = s[:-1]
     try:
-        return float(s.replace(",", "."))  # support '7,5'
+        return float(s.replace(",", "."))
     except ValueError:
         return None
 
@@ -157,74 +156,49 @@ def _years_owned_inclusive(purchase_year: int, resale_year: int) -> int:
     return int(resale_year) - int(purchase_year) + 1
 
 def _infer_euro_truck(year: int, euro_class: Optional[str] = None) -> str:
-    if euro_class:
-        return euro_class
-    return "Euro 6" if year >= 2014 else "Euro 5"
+    return euro_class or ("Euro 6" if year >= 2014 else "Euro 5")
 
-
+# ---------- optional parser for your "original class name" bands ----------
 def _parse_original_class(original: str) -> Optional[Tuple[str, Optional[float], Optional[float]]]:
-    """
-    Returns (vehicle_type, min_t, max_t) where vehicle_type in {'rigid','articulated'}.
-    min_t/max_t in tonnes; max_t may be None if open-ended (>32t).
-    """
     if not original:
         return None
-    s = original.strip().lower().replace(" ", "")
-    vehicle_type = "articulated" if s.startswith("lz/sz") or s.startswith("lzsz") else "rigid" if s.startswith("lkw") else None
+    s = original.strip().lower().replace(" ", "").replace(",", ".")
+    vehicle_type = "articulated" if s.startswith(("lz/sz","lzsz")) else ("rigid" if s.startswith("lkw") else None)
     if vehicle_type is None:
         return None
-
-    # Normalize decimal comma in numbers
-    s = s.replace(",", ".")
-    # Patterns:
-    #   =7.5t
     m_eq = re.search(r"=(\d+(?:\.\d+)?)t", s)
     if m_eq:
-        val = float(m_eq.group(1))
-        return (vehicle_type, val, val)
-
-    #   >7.5-12t   OR   >7.5t-14t  (allow optional 't' after first number)
+        v = float(m_eq.group(1))
+        return (vehicle_type, v, v)
     m_range = re.search(r">(\d+(?:\.\d+)?)(?:t)?-(\d+(?:\.\d+)?)t", s)
     if m_range:
-        lo = float(m_range.group(1))
-        hi = float(m_range.group(2))
-        return (vehicle_type, lo, hi)
-
-    #   >32t   (open-ended)
+        return (vehicle_type, float(m_range.group(1)), float(m_range.group(2)))
     m_open = re.search(r">(\d+(?:\.\d+)?)t$", s)
     if m_open:
-        lo = float(m_open.group(1))
-        return (vehicle_type, lo, None)
-
+        return (vehicle_type, float(m_open.group(1)), None)
     return None
 
-def _estimate_tonnes_from_band(min_t: Optional[float], max_t: Optional[float], strategy: str = "midpoint") -> Optional[float]:
-    """
-    strategy ∈ {'midpoint','upper','lower'}; for open-ended, fallback to min_t.
-    """
+def _tonnes_from_band(min_t: Optional[float], max_t: Optional[float], strategy: str = "midpoint") -> Optional[float]:
     if min_t is None and max_t is None:
         return None
     if max_t is None:
-        # open-ended, e.g., >32 t → use min bound (conservative) or allow override later
         return float(min_t)
     if strategy == "upper":
         return float(max_t)
     if strategy == "lower":
         return float(min_t)
-    # midpoint
     return (float(min_t) + float(max_t)) / 2.0
 
-# ---------- canton formulas (annual, same as before) ----------
+# ---------- canton annual formulas already in your model (ZH/GE/VD/TI/GR/VS) ----------
 def _zurich_annual(weight_kg: int, euro: Optional[str], powertrain: str) -> float:
     base = 254.0
     if weight_kg > 4000:
-        steps = math.ceil((weight_kg - 4000) / 500)
-        base += 35.0 * steps
+        base += 35.0 * math.ceil((weight_kg - 4000) / 500)
     if powertrain.upper() in {"BEV", "FCEV"}:
         surcharge = 300.0
     else:
         e = (euro or "").lower()
-        surcharge = 300.0 if ("6" in e or "vii" in e or "7" in e) else 900.0
+        surcharge = 300.0 if any(x in e for x in ("6","vii","7")) else 900.0
     return base + surcharge
 
 def _geneva_annual(weight_kg: int, year: int, powertrain: str) -> float:
@@ -241,27 +215,23 @@ def _geneva_annual(weight_kg: int, year: int, powertrain: str) -> float:
         amt = 1837.0
     else:
         amt = next(val for ub, val in brackets if weight_kg <= ub)
-    if powertrain.upper() in {"BEV", "FCEV"} and year >= 2025:
+    if powertrain.upper() in {"BEV","FCEV"} and year >= 2025:
         amt *= 0.5
     return amt
 
 def _vaud_annual(weight_kg: int, powertrain: str, euro: Optional[str]) -> float:
     amt = 450.0
     if weight_kg > 4000:
-        steps = math.ceil((weight_kg - 4000) / 1000)
-        amt += 78.0 * steps
+        amt += 78.0 * math.ceil((weight_kg - 4000) / 1000)
     if powertrain.upper() == "BEV":
-        amt *= 0.10
-    else:
-        e = (euro or "").lower()
-        if "6" in e or "7" in e or "vii" in e:
-            amt *= 0.65
-    return amt
+        return amt * 0.10  # −90%
+    e = (euro or "").lower()
+    return amt * (0.65 if any(x in e for x in ("6","vii","7")) else 1.0)
 
 def _ticino_annual(power_kw: float) -> float:
     return 105.0 + 10.0 * float(power_kw)
 
-def _gr_category2(weight_kg: int) -> float:
+def _gr_cat2(weight_kg: int) -> float:
     amt = 450.50
     if weight_kg > 2000:
         up_to = min(16000, weight_kg)
@@ -271,8 +241,8 @@ def _gr_category2(weight_kg: int) -> float:
     return amt
 
 def _graubuenden_annual(weight_kg: int, powertrain: str) -> float:
-    if powertrain.upper() in {"BEV", "HEV-D", "PHEV-D"}:
-        return 0.20 * _gr_category2(weight_kg)
+    if powertrain.upper() in {"BEV","HEV-D","PHEV-D"}:
+        return 0.20 * _gr_cat2(weight_kg)
     amt = 595.80
     if weight_kg > 3500:
         add1 = min(weight_kg, 6500) - 3500
@@ -297,30 +267,108 @@ def _valais_annual(weight_kg: int) -> float:
         return 1750.0
     return 2000.0
 
-# ---------- public function ----------
+# ---------- NEW: Bern (BE) ----------
+def _bern_annual(weight_kg: int, powertrain: str, first_reg_year: int, this_year: int) -> float:
+    """
+    Normal tariff: first 1000 kg = 240 CHF; each subsequent *tonne* is 14% less
+    than the *previous* per-tonne step. Pro-rata by days ignored here (full year).
+    For BEV: base is 120 CHF for the first 1000 kg (same geometric decay per tonne),
+    and an *additional* −60% rebate for the first 4 calendar years from first registration.
+    """
+    def _geometric_sum(kg: int, first_1000_rate: float) -> float:
+        if kg <= 0:
+            return 0.0
+        # full 1000 kg blocks after the first 1000
+        full_tonnes_after = max(0, (kg - 1000) // 1000)
+        rem_kg = max(0, (kg - 1000) % 1000)
+        total = first_1000_rate
+        rate = first_1000_rate * (1 - 0.14)  # next 1'000 kg
+        for _ in range(int(full_tonnes_after)):
+            total += rate
+            rate *= (1 - 0.14)
+        if rem_kg > 0:
+            total += rate * (rem_kg / 1000.0)
+        return total
+
+    if powertrain.upper() == "BEV":
+        base = _geometric_sum(weight_kg, 120.0)
+        # 60% rebate for first registration year and next 3 years
+        if this_year >= first_reg_year and this_year <= first_reg_year + 3:
+            base *= 0.40
+        return base
+
+    # non-BEV/FCEV
+    return _geometric_sum(weight_kg, 240.0)
+
+# ---------- NEW: Basel-Landschaft (BL) ----------
+def _baselland_annual(weight_kg: int) -> float:
+    # Lastwagen ... CHF per kg
+    return 0.121446 * float(weight_kg)
+
+# ---------- NEW: Fribourg (FR) ----------
+def _fribourg_annual(weight_kg: int) -> float:
+    """
+    2025 heavy-vehicle table (FR). Brackets (CHF) for >3.5t “voiture automobile, camion, tracteur à sellette, véhicule articulé …”
+    """
+    tbl = [
+        (7500, 1140.0),
+        (14000, 1666.0),
+        (20000, 2192.0),
+        (26000, 2718.0),
+        (32000, 3244.0),
+        (10**9, 3770.0),  # ≥32'001 kg
+    ]
+    if weight_kg <= 3500:
+        return 0.0  # below “lourd” threshold; out of scope here
+    for ub, val in tbl:
+        if weight_kg <= ub:
+            return val
+    return tbl[-1][1]
+
+# ---------- NEW: Aargau (AG) ----------
+def _aargau_annual(payload_kg: int) -> float:
+    """
+    Nutzfahrzeuge über 1'000 kg Nutzlast – annual charge by payload band.
+    """
+    bands = [
+        (1500, 348.0), (2000, 420.0), (2500, 492.0), (3000, 564.0),
+        (3500, 636.0), (4000, 708.0), (4500, 780.0), (5000, 852.0),
+        (5500, 936.0), (6000, 1020.0), (6500, 1104.0), (7000, 1188.0),
+        (7500, 1272.0), (8000, 1356.0), (8500, 1440.0), (9000, 1524.0),
+        (9500, 1608.0),
+    ]
+    if payload_kg < 1000:
+        raise ValueError("AG expects payload >= 1'000 kg (else use the 'Motorwagen' schedule).")
+    for ub, val in bands:
+        if payload_kg <= ub:
+            return val
+    # > 9'500 kg payload – the published page stops here; assume step continues +84 CHF per 500 kg
+    extra_steps = math.ceil((payload_kg - 9500) / 500)
+    return 1608.0 + extra_steps * 84.0
+
+# ---------- public API ----------
 def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "midpoint") -> Dict[str, Any]:
     """
-    Compute the cantonal annual truck road tax for ONE canton, total it over the
-    inclusive ownership window, and normalize per km.
+    Single-canton truck road tax. Returns annual CHF, total over ownership (inclusive),
+    and normalized CHF/km.
 
-    Required keys:
+    Required:
       - canton
-      - purchase_year, resale_year
+      - powertrain
+      - year (manufacture year; used for Euro/BEV timelines)
+      - purchase_year, resale_year (inclusive)
       - kilometers per year
-      - year  (manufacture year; used to infer Euro class if 'euro_class' not given)
-      - EITHER:
-          - size (e.g., '40t' or numeric tonnes)
-        OR
-          - original class name (e.g., 'LKW >20-26t', 'LZ/SZ >34-40t')
+      - EITHER exact weight via 'size' (e.g. '40t') OR 'original class name' band
 
-    Extra (recommended for accuracy):
-      - euro_class (e.g., 'Euro 6d')
-      - power (kW)  # required for Ticino
+    Extra (if applicable):
+      - power (kW)            # Ticino
+      - euro_class            # if you don’t want inference
+      - payload_kg            # Aargau (AG) needs Nutzlast
 
-    band_estimation: how to estimate tonnes from a class band:
-        'midpoint' (default), 'upper', or 'lower'.
+    Notes:
+      - Genève’s BEV/H₂ 50% reduction is applied year-by-year from 2025.
+      - Bern’s BEV −60% reduction is applied year-by-year for first 4 reg. years.
     """
-    # inputs
     canton_raw = str(vehicle_data["canton"])
     canton = _normalize_canton(canton_raw)
     pt = str(vehicle_data["powertrain"]).strip()
@@ -328,58 +376,86 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
     euro = _infer_euro_truck(made_year, vehicle_data.get("euro_class"))
     y0, y1 = int(vehicle_data["purchase_year"]), int(vehicle_data["resale_year"])
     km_per_year = float(vehicle_data["kilometers per year"])
-
-    # weight: prefer explicit 'size'
-    tonnes = _parse_tonnes(vehicle_data.get("size"))
-    vehicle_type = None
-    weight_source = "size"
-
-    if tonnes is None:
-        parsed = _parse_original_class(vehicle_data.get("original class name", ""))
-        if parsed:
-            vehicle_type, min_t, max_t = parsed
-            tonnes = _estimate_tonnes_from_band(min_t, max_t, band_estimation)
-            weight_source = "original class name"
-        else:
-            raise ValueError("Provide either 'size' (e.g., '40t') or a parseable 'original class name'.")
-
-    weight_kg = int(round(tonnes * 1000))
     years = _years_owned_inclusive(y0, y1)
     total_km = km_per_year * years
 
-    # compute per canton
-    annual = None
+    # weight resolution
+    tonnes = _parse_tonnes(vehicle_data.get("size"))
+    vehicle_type = None
+    weight_source = "size"
+    if tonnes is None:
+        parsed = _parse_original_class(vehicle_data.get("original class name",""))
+        if parsed:
+            vehicle_type, lo, hi = parsed
+            tonnes = _tonnes_from_band(lo, hi, band_estimation)
+            weight_source = "original class name"
+        else:
+            tonnes = None
+    if canton in {"ag", "aargau"} and "cargo mass" not in vehicle_data:
+        # For AG we must use payload-based table; weight may still be useful for your other modules.
+        pass
+    if tonnes is None and canton not in {"ag","aargau"}:
+        raise ValueError("Provide 'size' (e.g., '40t') or a parseable 'original class name'.")
+
+    weight_kg = int(round(tonnes * 1000)) if tonnes is not None else None
+
+    # dispatch per canton
     per_year = None
     notes = []
-
-    if canton in {"zurich", "zh", "zuerich", "zurich city"}:
+    if canton in {"zh","zuerich","zurich","zurich city"}:
         annual = _zurich_annual(weight_kg, euro, pt)
 
-    elif canton in {"geneve", "geneva", "ge"}:
-        per_year = []
-        total = 0.0
+    elif canton in {"ge","geneve","geneva"}:
+        per_year, total = [], 0.0
         for yr in range(y0, y1 + 1):
             a = _geneva_annual(weight_kg, yr, pt)
             per_year.append({"year": yr, "annual_tax_chf": round(a, 2)})
             total += a
-        annual = total / years if years > 0 else 0.0
-        notes.append("Genève: BEV/FCEV 50% rebate applied from 2025, year-by-year.")
+        annual = total / years if years else 0.0
+        notes.append("Genève: −50% for BEV/FCEV from 2025 applied year-by-year.")
 
-    elif canton in {"vaud", "vd"}:
+    elif canton in {"vd","vaud"}:
         annual = _vaud_annual(weight_kg, pt, euro)
 
-    elif canton in {"ticino", "ti"}:
+    elif canton in {"ti","ticino"}:
         if "power" not in vehicle_data:
-            raise ValueError("For Ticino, please provide 'power' (kW) in vehicle_data.")
+            raise ValueError("Ticino requires 'power' (kW).")
         annual = _ticino_annual(float(vehicle_data["power"]))
-        notes.append("Ticino formula: 105 + 10 × power_kW.")
+        notes.append("Ticino formula: CHF 105 + 10 × kW.")
 
-    elif canton in {"graubuenden", "graubunden", "gr", "grisons"}:
+    elif canton in {"gr","graubunden","graubuenden"}:
         annual = _graubuenden_annual(weight_kg, pt)
-        notes.append("Graubünden: EV/(H)EV trucks taxed at 20% of Category-2 weight tariff.")
+        notes.append("Graubünden: EV/(H)EV trucks pay 20% of Category-2 weight tariff.")
 
-    elif canton in {"valais", "vs"}:
+    elif canton in {"vs","valais"}:
         annual = _valais_annual(weight_kg)
+
+    # NEW ones
+    elif canton in {"be","bern","berne"}:
+        # apply BE year-by-year (for BEV’s 4-year rebate)
+        per_year, total = [], 0.0
+        # first registration year defaults to manufacture year if not given
+        first_reg = int(vehicle_data.get("first_registration_year", made_year))
+        for yr in range(y0, y1 + 1):
+            a = _bern_annual(weight_kg, pt, first_reg, yr)
+            per_year.append({"year": yr, "annual_tax_chf": round(a, 2)})
+            total += a
+        annual = total / years if years else 0.0
+        notes.append("Bern: geometric weight tariff (−14% per extra tonne); BEV −60% for first 4 reg. years.")
+
+    elif canton in {"bl","baselland","basel-landschaft","basel landschaft"}:
+        annual = _baselland_annual(weight_kg)
+        notes.append("Basel-Landschaft: Lastwagen CHF/kg weight rate (variable tax table).")
+
+    elif canton in {"fr","fribourg","freiburg"}:
+        annual = _fribourg_annual(weight_kg)
+        notes.append("Fribourg: heavy-vehicle fixed weight brackets (2025 tariff).")
+
+    elif canton in {"ag","aargau"}:
+        if "cargo mass" not in vehicle_data:
+            raise ValueError("Aargau requires 'cargo mass' (Nutzlast) for trucks.")
+        annual = _aargau_annual(int(vehicle_data["cargo mass"]))
+        notes.append("Aargau: trucks taxed by payload (Nutzlast) bands.")
 
     else:
         raise ValueError(f"Unsupported/unknown canton '{canton_raw}'.")
@@ -389,18 +465,17 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
 
     return {
         "canton": canton_raw,
-        "vehicle_type_inferred": vehicle_type,          # 'rigid' or 'articulated' if from class name
-        "tonnes_used": round(tonnes, 3),
-        "weight_source": weight_source,                 # 'size' or 'original class name'
+        "vehicle_type_inferred": vehicle_type,                    # 'rigid' / 'articulated' if parsed
+        "tonnes_used": round(tonnes, 3) if tonnes is not None else None,
+        "weight_source": weight_source if tonnes is not None else None,
         "annual_tax_chf": round(annual, 2),
         "years": years,
         "total_tax_chf": round(total_tax, 2),
         "total_km": int(total_km),
         "chf_per_km": round(chf_per_km, 6),
         **({"per_year": per_year} if per_year else {}),
-        "notes": [
-            f"Euro class: {euro} (manufacture year {made_year}).",
-            f"Weight estimation strategy: {band_estimation}.",
+        "notes": notes + [
+            f"Euro class: {_infer_euro_truck(made_year, vehicle_data.get('euro_class'))} (manufacture year {made_year}).",
             "Ownership window treated as calendar-year inclusive.",
-        ] + notes,
+        ],
     }
