@@ -37,6 +37,7 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
 
 
 # Strict output schema via function calling
+# ai_commentary.py – add near the top
 COMPARE_TOOL = {
     "type": "function",
     "function": {
@@ -50,6 +51,7 @@ COMPARE_TOOL = {
                 "summary": {"type": "string"},
                 "capacity_and_range": {
                     "type": "array",
+                    "maxItems": 2,  # <= keep tiny to avoid truncation
                     "items": {
                         "type": "object",
                         "additionalProperties": False,
@@ -67,6 +69,7 @@ COMPARE_TOOL = {
         }
     }
 }
+
 
 
 # Strict JSON schema for the output we expect
@@ -219,8 +222,8 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
     except Exception as e:
         return {"_error": f"ClientInitError: {e}"}
 
-    # keep output big enough to fit the JSON; small floor prevents truncation
-    max_tokens = max(140, int(max_tokens or 160))
+    # Ensure enough room to print valid JSON arguments (too small => truncation)
+    max_tokens = max(220, min(int(max_tokens or 300), 360))  # ~220–360 tokens
 
     try:
         resp = client.chat.completions.create(
@@ -231,9 +234,9 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
             ],
             tools=[COMPARE_TOOL],
             tool_choice={"type": "function", "function": {"name": "emit_swisscargo_compare"}},
-            temperature=0.0,                # deterministic + schema-friendly
+            temperature=0.0,              # deterministic & schema-friendly
             max_tokens=max_tokens,
-            timeout=float(timeout_s),       # per-request budget
+            timeout=float(timeout_s),     # per-request budget
             n=1,
         )
 
@@ -241,17 +244,20 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
         tcalls = getattr(choice.message, "tool_calls", None)
 
         if tcalls and len(tcalls) > 0:
-            args = tcalls[0].function.arguments  # this is a JSON string
-            data = json.loads(args)
+            args = tcalls[0].function.arguments  # JSON string
+            try:
+                data = json.loads(args)
+            except json.JSONDecodeError:
+                # salvage inner {...} in case of stray tokens
+                data = _extract_json(args)
         else:
-            # Fallback: try normal content if tool call didn't trigger
+            # Rare fallback: try content
             content = (getattr(choice.message, "content", "") or "").strip()
             if not content:
                 return {"_error": "Empty model response"}
             try:
                 data = json.loads(content)
             except json.JSONDecodeError:
-                # Last resort: salvage inner {...}
                 data = _extract_json(content)
 
         if not isinstance(data, dict):
@@ -266,6 +272,7 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
         return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
+
 
 
 def _pick_lang(language: str) -> str:

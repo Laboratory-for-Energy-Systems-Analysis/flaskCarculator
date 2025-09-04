@@ -210,7 +210,7 @@ def calculate_lca():
         gc.collect()
 
     if ai_compare and data.get("nomenclature") == "swisscargo":
-        payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+        payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=False)
 
         RESPONSE_BUFFER = 8.0  # time to JSON, send, jitter
         MIN_AI_BUDGET = 4.0  # won't call AI unless we can give this much
