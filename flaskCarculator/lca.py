@@ -87,7 +87,7 @@ def set_vehicle_properties_before_run(model, params):
     Sets various properties of the vehicle model based on the provided parameters.
     """
 
-    if params.get("lifetime kilometers", None):
+    if "lifetime kilometers" in params:
         model.array.loc[dict(parameter="lifetime kilometers")] = params[
             "lifetime kilometers"
         ]
@@ -97,40 +97,40 @@ def set_vehicle_properties_before_run(model, params):
             "average passengers"
         ]
 
-    if params.get("fuel tank volume", 0) > 0:
+    if "fuel tank volume" in params:
         fuel_density = FUEL_SPECS[params["powertrain"]]["density"]
         model.array.loc[dict(parameter="fuel mass")] = (
             params["fuel tank volume"] * fuel_density
         )
 
-    if params.get("purchase cost", 0) > 0:
+    if "purchase cost" in params:
         model.array.loc[dict(parameter="purchase cost")] = params["purchase cost"]
 
-    if params.get("energy cost per kWh (public)", 0) > 0:
+    if "energy cost per kWh (public)" in params:
         model.array.loc[dict(parameter="energy cost per kWh (public)")] = params[
             "energy cost per kWh (public)"
         ]
 
-    if params.get("energy cost per kWh (depot)", 0) > 0:
+    if "energy cost per kWh (depot)" in params:
         model.array.loc[dict(parameter="energy cost per kWh (depot)")] = params[
             "energy cost per kWh (depot)"
         ]
 
-    if params.get("share depot charging", None) is not None:
+    if "share depot charging" in params:
         model.array.loc[dict(parameter="share depot charging")] = params[
             "share depot charging"
         ]
 
-    if params.get("maintenance cost", 0) > 0:
+    if "maintenance cost" in params:
         model.array.loc[dict(parameter="maintenance cost")] = params["maintenance cost"]
 
-    if params.get("insurance cost", 0) > 0:
+    if "insurance cost" in params:
         model.array.loc[dict(parameter="insurance cost")] = params["insurance cost"]
 
-    if params.get("interest rate", 0) > 0:
+    if "interest rate" in params:
         model.array.loc[dict(parameter="interest rate")] = params["interest rate"]
 
-    if params.get("share tolled roads", 0) > 0:
+    if "share tolled roads" in params:
         print(f"Setting share tolled roads to {params['share tolled roads']}")
         model.array.loc[dict(parameter="share tolled roads")] = params[
             "share tolled roads"
