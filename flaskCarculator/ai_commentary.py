@@ -1,6 +1,8 @@
 # ai_commentary.py
 import os, json, time as _t
 from openai import OpenAI
+from openai import OpenAI
+import os, json
 
 OPENAI_MODEL = os.getenv("HOSTED_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("HOSTED_API_KEY")
@@ -129,9 +131,34 @@ def _extract_json(text: str) -> dict:
         return {}
 
 
+
+
+# Cache the client between calls
+_OPENAI_CLIENT = None
+
+def _get_openai_client(timeout_s: float):
+    global _OPENAI_CLIENT
+    api_key = OPENAI_API_KEY
+    if not api_key:
+        raise RuntimeError("OpenAI API key not configured")
+    # Reuse client; update timeout per request instead of recreating
+    if _OPENAI_CLIENT is None:
+        # max_retries=0 avoids hidden backoff that can blow your 30s budget
+        _OPENAI_CLIENT = OpenAI(api_key=api_key, timeout=timeout_s, max_retries=0)
+    return _OPENAI_CLIENT
+
 def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
-    # Set a short client-level timeout default; you can override per call
-    client = OpenAI(api_key=OPENAI_API_KEY, timeout=timeout_s) if OPENAI_API_KEY else None
+    """
+    Returns a dict with at least:
+      { 'summary': str, 'capacity_and_range': list }
+    or:
+      { '_error': str }
+    """
+    try:
+        client = _get_openai_client(timeout_s)
+    except Exception as e:
+        return {"_error": f"AuthError: {e}"}
+
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -139,14 +166,37 @@ def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, time
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=max_tokens,
-            temperature=temp,
-            response_format={"type": "json_object"},
-            timeout=timeout_s,  # ensure per-request timeout too
+            max_tokens=int(max_tokens),
+            temperature=float(temp) if temp is not None else 0.2,
+            response_format={"type": "json_object"},  # ask for JSON mode
+            timeout=timeout_s,  # per-request timeout
         )
-        # Normalize to your expected dict
-        return resp.choices[0].message.parsed if hasattr(resp.choices[0].message, "parsed") else resp.choices[0].message
+        msg = resp.choices[0].message
+
+        # Prefer parsed if present; otherwise parse content
+        data = None
+        if hasattr(msg, "parsed") and msg.parsed:
+            data = msg.parsed
+        else:
+            content = getattr(msg, "content", "") or ""
+            # Some SDKs return a single-text JSON string in content
+            data = json.loads(content) if content.strip() else {}
+
+        if not isinstance(data, dict):
+            return {"_error": "Model returned non-JSON response"}
+
+        # Normalize the expected keys so your caller doesn’t fall back
+        data.setdefault("summary", "")
+        data.setdefault("capacity_and_range", [])
+        if not isinstance(data.get("capacity_and_range"), list):
+            data["capacity_and_range"] = []
+
+        return data
+
+    except json.JSONDecodeError as e:
+        return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
+        # Includes timeouts, rate limits, etc.
         return {"_error": f"{type(e).__name__}: {e}"}
 
 def _pick_lang(language: str) -> str:
@@ -282,8 +332,18 @@ def ai_compare_across_vehicles_swisscargo(
             "_error": f"{type(e).__name__}: {e}",
         }
 
-    if not result or result.get("_error"):
-        return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
+    if not result:
+        return {"language": lang, "comparison": {"summary": "Empty response from AI.", "capacity_and_range": []}}
+
+    if result.get("_error"):
+        return {
+            "language": lang,
+            "comparison": {
+                "summary": f"AI error: {result['_error']}",
+                "capacity_and_range": []
+            },
+            "_error": result["_error"],
+        }
 
     cleaned = {
         "summary": (result.get("summary") or "").strip(),
