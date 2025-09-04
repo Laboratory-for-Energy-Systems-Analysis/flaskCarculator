@@ -150,6 +150,8 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
     blended_elec_ef = _blended_electricity_ef()
 
+    print(f"Using blended electricity EF of {blended_elec_ef:.2f} kg CO2e/kWh.")
+
     factor = 1
     if "func_unit" in params and params["func_unit"] == "tkm":
         factor = 1 / (data.array.sel(parameter="cargo mass").values.item() / 1000)
