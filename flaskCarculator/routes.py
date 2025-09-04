@@ -216,18 +216,13 @@ def calculate_lca():
 
             # Require a generous buffer before attempting AI (helps avoid Heroku H12)
             # Example policy: only run AI if >= 12s remain
-            if remaining < 12.0:
+            if remaining < 16.0:  # 14–16s is safe on Heroku
                 data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout (insufficient time left)."
             else:
-                # Keep AI timeout conservative and leave several seconds of buffer for response serialization
-                # We'll use at most 6s read timeout and reserve ~4–6s to finish the response.
-                ai_timeout = min(6.0, max(2.0, remaining - 8.0))
-
+                # Give AI a very small, fixed slice (≤5s); keep ≥8–10s for response
+                ai_timeout = min(5.0, remaining - 10.0)
                 data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload,
-                    language=ai_language,
-                    detail="deep",
-                    timeout_s=ai_timeout,  # ensure this is enforced by the HTTP client beneath
+                    payload, language=ai_language, detail="compact", timeout_s=ai_timeout
                 )
         except TimeoutError as e:
             data["ai_comparison_error"] = f"AI comparison timed out: {e}"
