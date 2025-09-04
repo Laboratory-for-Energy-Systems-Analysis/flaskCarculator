@@ -129,20 +129,29 @@ def _extract_json(text: str) -> dict:
             except Exception: pass
         return {}
 
-def _call_openai(system: str, prompt: str, max_tokens=700, temp=0.2, timeout_s=10.0) -> dict:
+_client = None
+
+def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
+    global _client
+    if _client is None:
+        # Per-call timeout; also set max_retries low to avoid hidden delays
+        _client = OpenAI(timeout=timeout_s, max_retries=0)
     try:
-        resp = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
-            temperature=temp,
+        resp = _client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
             max_tokens=max_tokens,
-            response_format={"type":"json_object"},
-            timeout=timeout_s,   # <- hard cap
+            temperature=temp,
+            response_format={"type": "json_object"},
+            timeout=timeout_s,  # ensure per-request timeout too
         )
-        return _extract_json(resp.choices[0].message.content)
+        # Normalize to your expected dict
+        return resp.choices[0].message.parsed if hasattr(resp.choices[0].message, "parsed") else resp.choices[0].message
     except Exception as e:
-        # propagate the reason so you can see it in the response
-        return {"_error": repr(e)}
+        return {"_error": f"{type(e).__name__}: {e}"}
 
 def _pick_lang(language: str) -> str:
     lang = (language or "en").lower()
@@ -197,9 +206,26 @@ def _int_or_none(x):
         return None
 
 
-def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", detail="compact", timeout_s=10.0) -> dict:
-    cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"])
+def ai_compare_across_vehicles_swisscargo(
+    veh_payload: dict, language="en", detail="compact", timeout_s=10.0
+) -> dict:
+    # ---- hard guard: never accept <= 0 or tiny budgets
+    budget = float(timeout_s) if timeout_s and timeout_s > 0 else 6.0
+    # reserve a little time for JSON cleaning & return
+    api_budget = max(1.5, budget - 1.0)  # seconds for the API call (read timeout)
+
+    cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"]).copy()
     lang = _pick_lang(language)
+
+    # Dynamically clamp tokens if little time remains
+    # (token generation time grows roughly with max_tokens)
+    if api_budget < 6.0:
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 600), 400)
+        cfg["word_limit"] = min(cfg.get("word_limit", 250), 180)
+    if api_budget < 3.0:
+        cfg["max_tokens"] = min(cfg.get("max_tokens", 400), 256)
+        cfg["word_limit"] = min(cfg.get("word_limit", 180), 120)
+
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
         "Use only provided numbers. Output strict JSON. "
@@ -214,9 +240,10 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
 
+    # Keep payload compact; avoid pretty printing and ASCII escaping
     payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
-    appendix_clause = "" if not cfg["include_appendix"] else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
+    appendix_clause = "" if not cfg.get("include_appendix") else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
 
     prompt = PROMPT_TMPL_COMPACT.format(
         veh_payload=payload_str,
@@ -230,25 +257,36 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
     ) + f"""
         Functional unit (FU): "{fu_label}" (code: {fu_code}).
         If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
-        
+
         Energy reporting policy:
         - Prefer feats["ttw_energy_mj_per_fu"] and report as MJ per {fu_code}.
         - Do NOT mention liters or kWh unless MJ is unavailable.
-        
+
         Totals display policy:
         - When citing totals, display "total_2dp" with "kgCO2-eq" per {fu_label} ({fu_code}).
         - Use the phrase "tank-to-wheel energy", not "ttw energy".
     """
 
-    result = _call_openai(
-        system=system,
-        prompt=prompt,
-        max_tokens=cfg["max_tokens"],
-        temp=0.2,
-        timeout_s=max(timeout_s, 20.0 if cfg["max_tokens"] > 1000 else timeout_s),
-    )
+    try:
+        # IMPORTANT: do NOT inflate timeout here; pass the budget through.
+        # Ensure your _call_openai() applies (connect_timeout, read_timeout) = (3.05, api_budget)
+        # if using requests; or client timeout=api_budget if using an SDK.
+        result = _call_openai(
+            system=system,
+            prompt=prompt,
+            max_tokens=cfg["max_tokens"],
+            temp=0.2,
+            timeout_s=api_budget,  # respect caller budget
+            # If you control _call_openai, also set max_retries=0–1 to avoid surprise delays.
+        )
+    except Exception as e:
+        return {
+            "language": lang,
+            "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []},
+            "_error": f"{type(e).__name__}: {e}",
+        }
 
-    if result.get("_error") or not result:
+    if not result or result.get("_error"):
         return {"language": lang, "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []}}
 
     cleaned = {
@@ -263,7 +301,6 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
             "range_km_est": _int_or_none(item.get("range_km_est")),
             "note": (item.get("note") or "").strip()[:60],
         })
-    # DO NOT pass through 'appendix' at all
     return {"language": lang, "comparison": cleaned}
 
 
