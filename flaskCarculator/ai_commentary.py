@@ -2,6 +2,7 @@
 import os, json, time as _t
 from openai import OpenAI
 from openai import OpenAI
+from httpx import Timeout
 import os, json
 
 OPENAI_MODEL = os.getenv("HOSTED_MODEL", "gpt-4o-mini")
