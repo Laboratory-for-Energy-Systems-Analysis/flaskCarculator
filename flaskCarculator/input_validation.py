@@ -142,7 +142,8 @@ def validate_input_data(data: dict) -> list:
         "purchase cost",
         "purchase_year",
         "resale_year",
-        "share tolled roads"
+        "share tolled roads",
+        "original class name",
     ]
 
     errors = []
