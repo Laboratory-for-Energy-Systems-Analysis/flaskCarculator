@@ -34,7 +34,37 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
     mixed = (sum(1 for v in counts.values() if v > 0) > 1)
     return chosen, mixed
 
-# Add near the top, after FU_NAME_MAP
+
+# Strict JSON schema for the output we expect
+AI_JSON_SCHEMA = {
+    "name": "swisscargo_compare",
+    "schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["summary", "capacity_and_range"],
+        "properties": {
+            "summary": {"type": "string"},
+            "capacity_and_range": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "capacity_utilization", "utilization_value", "range_km_est", "note"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "capacity_utilization": {"type": "string", "enum": ["low", "medium", "high", "unknown"]},
+                        "utilization_value": {"type": ["number", "null"]},
+                        "range_km_est": {"type": ["integer", "null"]},
+                        "note": {"type": "string"}
+                    }
+                }
+            }
+        }
+    },
+    "strict": True
+}
+
+
 STAGE_GLOSSARY = """
 Stage glossary (authoritative definitions; follow strictly):
 - "road": Embodied greenhouse-gas emissions from constructing and maintaining the road infrastructure used by the trucks.
@@ -153,16 +183,10 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
     try:
         client = _get_openai_client()
     except Exception as e:
-        return {"_error": f"ClientInitError: {e}"}  # don't call this AuthError
+        return {"_error": f"ClientInitError: {e}"}
 
     try:
-        per_req_timeout = Timeout(
-            connect=3.0,
-            read=max(1.5, float(timeout_s)),   # your small read budget
-            write=5.0,
-            pool=3.0,
-        )
-
+        # You can keep your per-request httpx.Timeout if you like; a float also works:
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
@@ -170,18 +194,37 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
                 {"role": "user", "content": prompt},
             ],
             max_tokens=int(max_tokens),
-            temperature=float(temp) if temp is not None else 0.2,
-            response_format={"type": "json_object"},
-            timeout=per_req_timeout,  # ✔ valid Timeout
+            temperature=float(temp) if temp is not None else 0.0,  # reduce creativity
+            response_format={"type": "json_schema", "json_schema": AI_JSON_SCHEMA},  # ← STRICT schema
+            timeout=float(timeout_s),
+            n=1,
         )
+
         msg = resp.choices[0].message
-        data = msg.parsed if getattr(msg, "parsed", None) else json.loads(getattr(msg, "content", "") or "{}")
+
+        if getattr(msg, "parsed", None):
+            data = msg.parsed
+        else:
+            content = (getattr(msg, "content", "") or "").strip()
+            # As a fallback, strip fences and try again
+            if content.startswith("```"):
+                # remove ```json\n ... ``` wrappers
+                content = content.strip("`")
+                if content.lower().startswith("json"):
+                    content = content[4:].lstrip()
+            data = json.loads(content) if content else {}
+
         if not isinstance(data, dict):
             return {"_error": "Model returned non-JSON response"}
-        data.setdefault("summary", ""); data.setdefault("capacity_and_range", [])
+
+        data.setdefault("summary", "")
+        data.setdefault("capacity_and_range", [])
+        if not isinstance(data["capacity_and_range"], list):
+            data["capacity_and_range"] = []
         return data
 
     except json.JSONDecodeError as e:
+        # Optional: include a small snippet to debug shape
         return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
