@@ -216,7 +216,7 @@ def calculate_lca():
 
             # Require a generous buffer before attempting AI (helps avoid Heroku H12)
             # Example policy: only run AI if >= 12s remain
-            if remaining < 12.0:
+            if remaining < 8.0:
                 data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout (insufficient time left)."
             else:
                 # Keep AI timeout conservative and leave several seconds of buffer for response serialization
