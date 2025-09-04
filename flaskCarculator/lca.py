@@ -586,35 +586,37 @@ def initialize_model(params, nomenclature=None):
         indicator = params["indicator"]
 
     electricity_mix = None
+
+    technology_indices = {
+        "hydro": 0,
+        "nuclear": 1,
+        "gas": 2,
+        "solar": 3,
+        "wind": 4,
+        "biomass": 5,
+        "coal": 6,
+        "oil": 7,
+        "geothermal": 8,
+        "waste": 9,
+        "biogas_ccs": 10,
+        "biomass_ccs": 11,
+        "coal_ccs": 12,
+        "gas_ccs": 13,
+        "wood_ccs": 14,
+        "hydro_alpine": 15,
+        "gas_ccgt": 16,
+        "gas_chp": 17,
+        "solar_thermal": 18,
+        "wind_offshore": 19,
+        "lignite": 20,
+    }
+
     if "electricity" in params:
         if params["electricity"] != "grid":
-            technology_indices = {
-                "hydro": 0,
-                "nuclear": 1,
-                "gas": 2,
-                "solar": 3,
-                "wind": 4,
-                "biomass": 5,
-                "coal": 6,
-                "oil": 7,
-                "geothermal": 8,
-                "waste": 9,
-                "biogas_ccs": 10,
-                "biomass_ccs": 11,
-                "coal_ccs": 12,
-                "gas_ccs": 13,
-                "wood_ccs": 14,
-                "hydro_alpine": 15,
-                "gas_ccgt": 16,
-                "gas_chp": 17,
-                "solar_thermal": 18,
-                "wind_offshore": 19,
-                "lignite": 20,
-            }
-
-            electricity_mix = np.zeros(21)
-            electricity_mix[technology_indices[params["electricity"]]] = 1
-            electricity_mix = {"custom electricity mix": [electricity_mix]}
+            if params["electricity"] in technology_indices:
+                electricity_mix = np.zeros(21)
+                electricity_mix[technology_indices[params["electricity"]]] = 1
+                electricity_mix = {"custom electricity mix": [electricity_mix]}
 
     m.inventory = inventory(
         m,
