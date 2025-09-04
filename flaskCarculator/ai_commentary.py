@@ -24,6 +24,22 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
     mixed = (sum(1 for v in counts.values() if v > 0) > 1)
     return chosen, mixed
 
+# Add near the top, after FU_NAME_MAP
+STAGE_GLOSSARY = """
+Stage glossary (authoritative definitions; follow strictly):
+- "road": Embodied greenhouse-gas emissions from constructing and maintaining the road infrastructure used by the trucks.
+  This is NOT tailpipe/driving emissions.
+- "energy chain": Upstream greenhouse-gas emissions from producing and supplying the energy carrier
+  (e.g., refining and distributing diesel, generating and delivering electricity, producing and compressing/transporting hydrogen).
+"""
+
+CAPACITY_UTILIZATION_NOTE = """
+Capacity utilization policy (authoritative):
+- "capacity utilization" is the logistics load factor: the fraction of total carrying capacity that is actually used.
+- It reflects fleet/operations planning (how full the trucks run), not mechanical/engine efficiency or drivetrain performance.
+- Do NOT equate capacity utilization with efficiency; treat it as a demand allocation factor over the functional unit.
+"""
+
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total, total_2dp,
   attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
