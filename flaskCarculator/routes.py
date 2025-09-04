@@ -4,6 +4,7 @@ import time
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
+from .swiss_cargo_costs import calculate_lsva_charge_period
 import json
 import numpy as np
 from collections import OrderedDict
@@ -149,6 +150,7 @@ def calculate_lca():
         if data.get("nomenclature") == "tcs":
             vehicle["results_ecoinvent"] = format_results_for_tcs(data=model, params=vehicle)
             vehicle["results_bafu"] = format_results_for_tcs(data=model, params=vehicle, bafu=True)
+
         elif data.get("nomenclature") == "swisscargo":
             vehicle["results"] = format_results_for_swisscargo(data=model, params=vehicle)
             # add cost results
@@ -156,6 +158,12 @@ def calculate_lca():
             vehicle["cost_results"] = {
                 p: model.array.sel(parameter=p).mean().values.item() * factor for p in cost_results_parameters
             }
+
+            lsva_costs = calculate_lsva_charge_period(vehicle)
+
+            # add LSVA/RPLP road charge calculation
+            vehicle["cost_results"]["CO2 tax cost"] =  lsva_costs["cost_per_km_chf"] * factor
+
         else:
             vehicle["results"] = serialize_xarray(model.results)
 
