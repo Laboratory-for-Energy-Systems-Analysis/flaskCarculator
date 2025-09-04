@@ -4,8 +4,7 @@ from openai import OpenAI
 
 OPENAI_MODEL = os.getenv("HOSTED_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("HOSTED_API_KEY")
-# Set a short client-level timeout default; you can override per call
-client = OpenAI(api_key=OPENAI_API_KEY, timeout=10.0) if OPENAI_API_KEY else None
+
 
 LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
@@ -131,12 +130,10 @@ def _extract_json(text: str) -> dict:
 
 
 def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
-    global _client
-    if _client is None:
-        # Per-call timeout; also set max_retries low to avoid hidden delays
-        _client = OpenAI(timeout=timeout_s, max_retries=0)
+    # Set a short client-level timeout default; you can override per call
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=timeout_s) if OPENAI_API_KEY else None
     try:
-        resp = _client.chat.completions.create(
+        resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system},
