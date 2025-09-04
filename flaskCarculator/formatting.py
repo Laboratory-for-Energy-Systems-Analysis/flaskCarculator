@@ -127,17 +127,46 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
     def _parse_pv_grid_mix(s: str):
         """
-        Parse strings like '30_own_70_grid' -> (pv_share, grid_share) as decimals.
-        Normalizes if they don't sum to 100.
+        Accepts:
+          - '30_own_70_grid'
+          - '90% on-site Solar PV - 10% grid'
+          - '25% PV / 75% grid', '60% pv + 40% grid', etc.
+
+        Returns (pv_share, grid_share) in decimals, normalized to sum to 1.
         """
-        m = re.fullmatch(r"\s*(\d{1,3})_own_(\d{1,3})_grid\s*", s)
-        print(f"match for '{s}': {m}")
-        if not m:
+        if not isinstance(s, str):
             return None
-        x, y = int(m.group(1)), int(m.group(2))
-        print(f"Interpreting electricity param '{s}' as {x}% own PV, {y}% grid.")
-        total = x + y if (x + y) > 0 else 100
-        return (x / total, y / total)
+
+        s_norm = s.strip().lower()
+
+        # Case 1: compact token form: "X_own_Y_grid"
+        m = re.fullmatch(r"\s*(\d{1,3})_own_(\d{1,3})_grid\s*", s_norm)
+        if m:
+            x, y = int(m.group(1)), int(m.group(2))
+            total = x + y if (x + y) > 0 else 100
+            return (x / total, y / total)
+
+        # Case 2: flexible human-readable forms with explicit PV and grid numbers
+        # Try to find numbers attached to 'pv' and to 'grid' independently.
+        pv_m = re.search(r"(\d{1,3})\s*%?\s*(?:on[-\s]?site\s*)?(?:solar\s*)?pv", s_norm, flags=re.I)
+        grid_m = re.search(r"(\d{1,3})\s*%?\s*grid", s_norm, flags=re.I)
+        if pv_m and grid_m:
+            x, y = int(pv_m.group(1)), int(grid_m.group(1))
+            total = x + y if (x + y) > 0 else 100
+            return (x / total, y / total)
+
+        # Case 3: pattern like "X% ... - Y% ..." where the left is PV and right is grid
+        m = re.search(
+            r"(\d{1,3})\s*%?\s*(?:on[-\s]?site\s*)?(?:solar\s*)?pv.*?[-+/]\s*(\d{1,3})\s*%?\s*grid",
+            s_norm, flags=re.I
+        )
+        if m:
+            x, y = int(m.group(1)), int(m.group(2))
+            total = x + y if (x + y) > 0 else 100
+            return (x / total, y / total)
+
+        # If nothing matched, give up -> None (caller will treat as pure grid)
+        return None
 
     def _blended_electricity_ef():
         """Return the electricity EF to use (kg CO2e/kWh) after blending, if needed."""
