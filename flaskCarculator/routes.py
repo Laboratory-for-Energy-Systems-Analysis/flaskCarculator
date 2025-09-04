@@ -233,6 +233,7 @@ def calculate_lca():
 
 
 
+
     return Response(
         json.dumps(data, indent=2, sort_keys=False),  # Serialize using the ordered structure
         status=200,

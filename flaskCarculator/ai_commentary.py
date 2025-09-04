@@ -133,70 +133,47 @@ def _extract_json(text: str) -> dict:
 
 
 
-# Cache the client between calls
 _OPENAI_CLIENT = None
 
-def _get_openai_client(timeout_s: float):
+def _get_openai_client():
     global _OPENAI_CLIENT
-    api_key = OPENAI_API_KEY
-    if not api_key:
+    if not OPENAI_API_KEY:
         raise RuntimeError("OpenAI API key not configured")
-    # Reuse client; update timeout per request instead of recreating
     if _OPENAI_CLIENT is None:
-        # max_retries=0 avoids hidden backoff that can blow your 30s budget
-        _OPENAI_CLIENT = OpenAI(api_key=api_key, timeout=timeout_s, max_retries=0)
+        # Generous default; retries OFF to avoid hidden delays
+        _OPENAI_CLIENT = OpenAI(
+            api_key=OPENAI_API_KEY,
+            timeout=Timeout(connect=3.0, read=30.0, write=10.0),  # large defaults
+            max_retries=0,
+        )
     return _OPENAI_CLIENT
 
 def _call_openai(*, system: str, prompt: str, max_tokens: int, temp: float, timeout_s: float):
-    """
-    Returns a dict with at least:
-      { 'summary': str, 'capacity_and_range': list }
-    or:
-      { '_error': str }
-    """
     try:
-        client = _get_openai_client(timeout_s)
+        client = _get_openai_client()
     except Exception as e:
         return {"_error": f"AuthError: {e}"}
 
     try:
+        # Per-request timeout that *overrides* the generous client default
+        per_req_timeout = Timeout(connect=3.0, read=max(1.5, timeout_s), write=5.0)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
+            model=OPENAI_MODEL,
+            messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
             max_tokens=int(max_tokens),
             temperature=float(temp) if temp is not None else 0.2,
-            response_format={"type": "json_object"},  # ask for JSON mode
-            timeout=timeout_s,  # per-request timeout
+            response_format={"type": "json_object"},
+            timeout=per_req_timeout,  # IMPORTANT
         )
         msg = resp.choices[0].message
-
-        # Prefer parsed if present; otherwise parse content
-        data = None
-        if hasattr(msg, "parsed") and msg.parsed:
-            data = msg.parsed
-        else:
-            content = getattr(msg, "content", "") or ""
-            # Some SDKs return a single-text JSON string in content
-            data = json.loads(content) if content.strip() else {}
-
+        data = msg.parsed if getattr(msg, "parsed", None) else json.loads(getattr(msg, "content", "") or "{}")
         if not isinstance(data, dict):
             return {"_error": "Model returned non-JSON response"}
-
-        # Normalize the expected keys so your caller doesn’t fall back
-        data.setdefault("summary", "")
-        data.setdefault("capacity_and_range", [])
-        if not isinstance(data.get("capacity_and_range"), list):
-            data["capacity_and_range"] = []
-
+        data.setdefault("summary",""); data.setdefault("capacity_and_range",[])
         return data
-
     except json.JSONDecodeError as e:
         return {"_error": f"JSONDecodeError: {e}"}
     except Exception as e:
-        # Includes timeouts, rate limits, etc.
         return {"_error": f"{type(e).__name__}: {e}"}
 
 def _pick_lang(language: str) -> str:
