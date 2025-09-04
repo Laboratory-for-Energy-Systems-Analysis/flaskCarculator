@@ -26,7 +26,8 @@ def calculate_lca():
     This function receives the input data from the user, validates it, and calculates the LCA results.
     :return: JSON response
     """
-    deadline = time.time() + 20.0  # leave ~10s headroom for Heroku’s 30s
+    start = time.monotonic()
+    deadline = start + 28.0
 
     data = request.json
 
@@ -209,25 +210,28 @@ def calculate_lca():
         gc.collect()
 
     if ai_compare and data.get("nomenclature") == "swisscargo":
-        try:
-            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
+        payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
 
-            remaining = max(1.0, deadline - time.time())
+        # compute remaining wall time and a safe AI slice
+        RESPONSE_BUFFER = 6.0  # time to JSON-serialize, send response, network wiggle
+        MIN_AI_BUDGET = 3.5  # won’t call AI unless we can give it at least this
+        remaining = deadline - time.monotonic()
+        ai_budget = remaining - RESPONSE_BUFFER
 
-            # Require a generous buffer before attempting AI (helps avoid Heroku H12)
-            # Example policy: only run AI if >= 12s remain
-            if remaining < 16.0:  # 14–16s is safe on Heroku
-                data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout (insufficient time left)."
-            else:
-                # Give AI a very small, fixed slice (≤5s); keep ≥8–10s for response
-                ai_timeout = min(5.0, remaining - 10.0)
-                data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload, language=ai_language, detail="compact", timeout_s=ai_timeout
-                )
-        except TimeoutError as e:
-            data["ai_comparison_error"] = f"AI comparison timed out: {e}"
-        except Exception as e:
-            data["ai_comparison_error"] = str(e)
+        if ai_budget >= MIN_AI_BUDGET:
+            # cap the AI call budget to something small & predictable
+            ai_timeout = min(5.0, ai_budget)
+            data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
+                payload, language=ai_language, detail="compact", timeout_s=ai_timeout
+            )
+            data["ai_timing"] = {
+                "remaining_before_ai_s": round(remaining, 2),
+                "ai_budget_s": round(ai_timeout, 2)
+            }  # optional: keep for debugging, remove later
+        else:
+            data["ai_comparison_note"] = (
+                f"Skipped AI (remaining={remaining:.2f}s, needs ≥{MIN_AI_BUDGET + RESPONSE_BUFFER:.1f}s)."
+            )
 
 
 
