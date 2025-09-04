@@ -136,6 +136,13 @@ def set_vehicle_properties_before_run(model, params):
             "share tolled roads"
         ]
 
+    if "residual value share" in params:
+        model.array.loc[dict(parameter="residual value share")] = params[
+            "residual value share"
+        ]
+
+
+
     return model
 
 

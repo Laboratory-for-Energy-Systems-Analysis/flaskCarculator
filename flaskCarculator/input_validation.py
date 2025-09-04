@@ -144,6 +144,7 @@ def validate_input_data(data: dict) -> list:
         "resale_year",
         "share tolled roads",
         "original class name",
+        "residual value share",
     ]
 
     errors = []
