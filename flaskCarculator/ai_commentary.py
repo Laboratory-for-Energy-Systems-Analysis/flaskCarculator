@@ -198,8 +198,10 @@ def ai_compare_across_vehicles_swisscargo(veh_payload: dict, language="en", deta
         close_band=0.02,
         stage_glossary=STAGE_GLOSSARY.strip(),
         capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip(),
-        cost_policy=COST_POLICY.strip(),
+        cost_policy=COST_POLICY.strip().format(fu_code=fu_code),  # ← pre-format inner block
+        fu_code=fu_code,  # ← satisfy {fu_code} in PROMPT_TMPL_COMPACT
     ) + f"""
+
     Functional unit (FU): "{fu_label}" (code: {fu_code}).
     If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
 
