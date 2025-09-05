@@ -217,62 +217,84 @@ def _get_openai_client():
     return _OPENAI_CLIENT
 
 def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
+    def _valid(data: dict) -> bool:
+        return (
+            isinstance(data, dict)
+            and isinstance(data.get("summary"), str) and data.get("summary", "").strip() != ""
+            and isinstance(data.get("capacity_and_range"), list)
+        )
+
     try:
         client = _get_openai_client()
     except Exception as e:
         return {"_error": f"ClientInitError: {e}"}
 
     # Ensure enough room to print valid JSON arguments (too small => truncation)
-    max_tokens = max(220, min(int(max_tokens or 300), 360))  # ~220–360 tokens
+    max_tokens = max(220, min(int(max_tokens or 300), 360))
 
+    # ---------- Attempt 1: function-call route ----------
     try:
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             tools=[COMPARE_TOOL],
-            tool_choice={"type": "function", "function": {"name": "emit_swisscargo_compare"}},
-            temperature=0.0,              # deterministic & schema-friendly
+            tool_choice={"type": "function", "function": {"name": "emit_swisscargo_compare"}},  # forced tool
+            temperature=float(temp) if temp is not None else 0.0,  # use caller's temp
             max_tokens=max_tokens,
-            timeout=float(timeout_s),     # per-request budget
+            timeout=float(timeout_s),
             n=1,
         )
 
         choice = resp.choices[0]
         tcalls = getattr(choice.message, "tool_calls", None)
+        data = {}
 
-        if tcalls and len(tcalls) > 0:
-            args = tcalls[0].function.arguments  # JSON string
+        if tcalls:
+            args = tcalls[0].function.arguments or ""
             try:
                 data = json.loads(args)
             except json.JSONDecodeError:
-                # salvage inner {...} in case of stray tokens
-                data = _extract_json(args)
-        else:
-            # Rare fallback: try content
+                data = _extract_json(args)  # salvage inner {...}
+
+        # Fallback to content if the model ignored tools
+        if (not tcalls or not _valid(data)):
             content = (getattr(choice.message, "content", "") or "").strip()
-            if not content:
-                return {"_error": "Empty model response"}
-            try:
-                data = json.loads(content)
-            except json.JSONDecodeError:
-                data = _extract_json(content)
+            if content:
+                try:
+                    data = json.loads(content)
+                except json.JSONDecodeError:
+                    data = _extract_json(content)
 
-        if not isinstance(data, dict):
-            return {"_error": "Model returned non-JSON response"}
-
-        data.setdefault("summary", "")
-        if not isinstance(data.get("capacity_and_range"), list):
-            data["capacity_and_range"] = []
-        return data
+        if _valid(data):
+            return data
+        # else fall through to Attempt 2
 
     except json.JSONDecodeError as e:
-        return {"_error": f"JSONDecodeError: {e}"}
+        # continue to Attempt 2
+        pass
+    except Exception as e:
+        # continue to Attempt 2
+        pass
+
+    # ---------- Attempt 2: plain JSON response (no tools) ----------
+    try:
+        resp2 = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},  # force strict JSON body
+            temperature=float(temp) if temp is not None else 0.0,
+            max_tokens=max_tokens,
+            timeout=float(timeout_s),
+            n=1,
+        )
+        content = (resp2.choices[0].message.content or "").strip()
+        data = _extract_json(content)
+        if _valid(data):
+            return data
+        return {"_error": "Model returned invalid/empty JSON after two attempts."}
+
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
-
 
 
 def _pick_lang(language: str) -> str:
@@ -331,6 +353,10 @@ def _int_or_none(x):
 def ai_compare_across_vehicles_swisscargo(
     veh_payload: dict, language="en", detail="compact", timeout_s=10.0
 ) -> dict:
+
+    if not veh_payload or not isinstance(veh_payload, dict):
+        return {"language": "en", "comparison": {"summary": "No vehicles to compare.", "capacity_and_range": []}}
+
     # ---- hard guard: never accept <= 0 or tiny budgets
     budget = float(timeout_s) if timeout_s and timeout_s > 0 else 6.0
     # Use (almost) the full slice the route gave us; cap to something sane if you want.
@@ -420,6 +446,15 @@ def ai_compare_across_vehicles_swisscargo(
             timeout_s=api_budget,  # respect caller budget
             # If you control _call_openai, also set max_retries=0–1 to avoid surprise delays.
         )
+
+        if not result or result.get("_error"):
+            return {
+                "language": lang,
+                "comparison": {"summary": f"AI error: {result.get('_error', 'Empty response')}",
+                               "capacity_and_range": []},
+                "_error": result.get("_error", "Empty response"),
+            }
+
     except Exception as e:
         return {
             "language": lang,
