@@ -72,34 +72,6 @@ COMPARE_TOOL = {
 
 
 
-# Strict JSON schema for the output we expect
-AI_JSON_SCHEMA = {
-    "name": "swisscargo_compare",
-    "schema": {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["summary", "capacity_and_range"],
-        "properties": {
-            "summary": {"type": "string"},
-            "capacity_and_range": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["id", "capacity_utilization", "utilization_value", "range_km_est", "note"],
-                    "properties": {
-                        "id": {"type": "string"},
-                        "capacity_utilization": {"type": "string", "enum": ["low", "medium", "high", "unknown"]},
-                        "utilization_value": {"type": ["number", "null"]},
-                        "range_km_est": {"type": ["integer", "null"]},
-                        "note": {"type": "string"}
-                    }
-                }
-            }
-        }
-    },
-    "strict": True
-}
 
 
 STAGE_GLOSSARY = """
@@ -141,11 +113,16 @@ APPENDIX_JSON_CLAUSE = """,
   }}"""
 
 # Replace your PROMPT_TMPL_COMPACT with this (only the tail is new)
+# comment_ai.py
+
+# (Optional) keep APPENDIX_JSON_CLAUSE for other modes, but don't use it in compact.
+# APPENDIX_JSON_CLAUSE = ...  # leave as-is
+
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total, total_2dp,
   attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
-  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu}},
-  cost:{{currency, per_fu, total, components, shares_pct}},
+  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu, available_payload_kg}},
+  cost:{{currency, per_fu, total, components}},
   stage_shares_pct:{{... optional ...}}}}):
 {veh_payload}
 
@@ -159,34 +136,50 @@ Rules:
 - When referencing stages in attrs["top_stages"]:
     - If you mention "road", explicitly call it "road infrastructure construction & upkeep (embodied)".
     - "energy chain" must be described as the upstream energy supply chain (production + delivery) for the relevant carrier.
+- When assessing carrying capacity, use feats["available_payload_kg"] (gross mass − curb mass) if present. Ignore any payload utilization ratio fields.
 
 - Summary (≤{word_limit} words):
     - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per FU).
-    - Add ONE concise **cost** sentence: lowest- vs highest-cost vehicles with totals in CHF per {fu_code} and their dominant cost driver(s).
-    - Interpret stage drivers: explain what “energy chain” and “road infrastructure construction & upkeep (embodied)” mean and how they shape differences.
-    - Discuss **tank-to-wheel energy** in MJ per FU and relate it to results where relevant.
-    - Explain **capacity utilization** as a logistics load factor (%, no decimals) and how changes (e.g., ±10 percentage points) would qualitatively shift per-FU results.
-    - Note any mixed functional units (if detected) and avoid cross-unit comparisons.
-    - Keep factual; round totals to 2 decimals; ranges whole km; MJ/FU to 1–2 decimals; costs to 2 decimals.
-If additional detail is requested, include an "appendix" object with the sections below. Omit "appendix" entirely if insufficient data.
+    - Add ONE concise cost sentence (CHF per {fu_code}).
+    - Interpret stage drivers ("energy chain", "road infrastructure construction & upkeep (embodied)").
+    - Discuss tank-to-wheel energy (MJ per {fu_code}) where relevant.
+    - Explain capacity utilization as a logistics load factor (%, no decimals).
+    - Note mixed functional units if present; avoid cross-unit comparisons.
 
-Appendix spec (only when detailed):
-- "cost_overview": per vehicle, total cost and its top 1–2 drivers (use cost.shares_pct or components).
-- "stage_breakdown": per vehicle, top stages and stage_shares_pct (if provided).
-- "per_vehicle": concise facts per id (GHG total, tank-to-wheel energy, capacity utilization %, short note).
-- "notes": short bullet points on assumptions/limits (e.g., mixed FUs, missing costs).
-
-Write the summary as 3–5 short paragraphs: (1) overall ranking & magnitudes, (2) costs, (3) stage drivers, (4) energy & utilization, (5) caveats.
+Output policy:
+- Output **only** a JSON object with exactly these two keys: "summary" and "capacity_and_range".
+- If a value is unknown, use null. Never write placeholders like number|null or "...".
+- Keep all numbers as numbers (no strings for numbers).
 
 Return ONLY this JSON:
 {{
-  "summary": "≤{word_limit} words",
+  "summary": "text",
   "capacity_and_range": [
-    {{"id":"...","capacity_utilization":"low|medium|high|unknown","utilization_value": number|null,"range_km_est": number|null,"note":"≤12 words"}}
-  ]{appendix_clause}
+    {{"id":"vehicle-id","capacity_utilization":"low","utilization_value":0.5,"range_km_est":120,"note":"short"}}
+  ]
 }}
 """
 
+def _is_finite_number(x) -> bool:
+    try:
+        return isinstance(x, (int, float)) and math.isfinite(float(x))
+    except Exception:
+        return False
+
+def _sanitize_numbers(obj):
+    """Recursively replace non-finite numbers with None and drop empty dicts."""
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            sv = _sanitize_numbers(v)
+            # Optionally drop None-only components if desired
+            out[k] = sv
+        return out
+    elif isinstance(obj, list):
+        return [_sanitize_numbers(v) for v in obj]
+    elif isinstance(obj, (int, float)):
+        return float(obj) if _is_finite_number(obj) else None
+    return obj
 
 def _extract_json(text: str) -> dict:
     try:
@@ -368,14 +361,14 @@ def ai_compare_across_vehicles_swisscargo(
     # Dynamically clamp tokens if little time remains
     # Aggressive clamping for speed
     if api_budget <= 3.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 160)
-        cfg["word_limit"] = min(cfg.get("word_limit", 180), 90)
+        cfg["max_tokens"] = 200
+        cfg["word_limit"] = 90
     elif api_budget <= 5.0:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 200)
-        cfg["word_limit"] = min(cfg.get("word_limit", 180), 110)
+        cfg["max_tokens"] = 260
+        cfg["word_limit"] = 110
     else:
-        cfg["max_tokens"] = min(cfg.get("max_tokens", 700), 220)
-        cfg["word_limit"] = min(cfg.get("word_limit", 180), 120)
+        cfg["max_tokens"] = 320  # was 220
+        cfg["word_limit"] = 120
 
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
@@ -407,8 +400,14 @@ def ai_compare_across_vehicles_swisscargo(
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
 
     # Keep payload compact; avoid pretty printing and ASCII escaping
-    payload_str = json.dumps(slim_payload, ensure_ascii=False, separators=(",", ":"))
 
+    sanitized_payload = _sanitize_numbers(slim_payload)
+    payload_str = json.dumps(
+        sanitized_payload,
+        ensure_ascii=True,  # keep it plain ASCII
+        separators=(",", ":"),
+        allow_nan=False  # hard fail if NaN/Inf slipped through
+    )
     appendix_clause = "" if not cfg.get("include_appendix") else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
 
     include_glossary = api_budget >= 4.0
