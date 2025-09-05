@@ -122,7 +122,7 @@ def set_vehicle_properties_before_run(model, params):
         ]
 
     if "daily charger" in params:
-        model.array.loc[dict(parameter="depot charger power")] = params["daily charger"]
+        model.array.loc[dict(parameter="depot charger power")] = int(params["daily charger"].replace(" kW", ""))
 
     if "maintenance cost" in params:
         model.array.loc[dict(parameter="maintenance cost")] = params["maintenance cost"]
