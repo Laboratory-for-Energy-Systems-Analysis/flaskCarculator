@@ -229,10 +229,9 @@ def _get_openai_client():
     if not OPENAI_API_KEY:
         raise RuntimeError("OpenAI API key not configured")
     if _OPENAI_CLIENT is None:
-        # Generous default; retries OFF to avoid hidden delays
         _OPENAI_CLIENT = OpenAI(
             api_key=OPENAI_API_KEY,
-            timeout=Timeout(connect=3.0, read=30.0, write=10.0, pool=3.0),  # large defaults
+            timeout=Timeout(connect=10.0, read=60.0, write=20.0, pool=5.0),
             max_retries=0,
         )
     return _OPENAI_CLIENT
@@ -380,22 +379,29 @@ def _int_or_none(x):
         return None
 
 
+# ai_commentary.py
+
 def ai_compare_across_vehicles_swisscargo(
-    veh_payload: dict, language="en", detail="compact", timeout_s=10.0
+    veh_payload: dict,
+    language="en",
+    detail="compact",
+    timeout_s=10.0,
+    remaining_before_ai_s: float | None = None,   # ← NEW
 ) -> dict:
-
     if not veh_payload or not isinstance(veh_payload, dict):
-        return {"language": "en", "comparison": {"summary": "No vehicles to compare.", "capacity_and_range": []}}
+        return {"language": "en", "summary": "No vehicles to compare."}
 
-    # ---- hard guard: never accept <= 0 or tiny budgets
-    budget = float(timeout_s) if timeout_s and timeout_s > 0 else 6.0
-    # Use (almost) the full slice the route gave us; cap to something sane if you want.
-    api_budget = max(1.8, min(budget - 0.3, 12.0))  # e.g., 7.2s when budget=7.5
+    # Derive API budget from remaining time when available
+    if remaining_before_ai_s and remaining_before_ai_s > 6.0:
+        # keep 2s safety margin, cap at 20s
+        api_budget = min(max(6.0, remaining_before_ai_s - 2.0), 20.0)
+    else:
+        budget = float(timeout_s) if timeout_s and timeout_s > 0 else 8.0
+        api_budget = max(4.0, min(budget - 0.2, 12.0))
 
-    # choose detail by available API budget
-    if api_budget >= 9.0:
+    if api_budget >= 10.0:
         detail = "deep"
-    elif api_budget >= 6.0:
+    elif api_budget >= 7.0:
         detail = "standard"
     else:
         detail = "compact"
