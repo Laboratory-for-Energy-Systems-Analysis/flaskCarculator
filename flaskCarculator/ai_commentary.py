@@ -127,9 +127,6 @@ Rules (follow exactly):
 - Never write "null" or "unknown" in the summary; omit that sentence instead.
 - 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
-Data hints (binary flags to decide which sentences to include):
-{hints_str}
-
 Return ONLY this JSON:
 {{
   "summary": "text"
