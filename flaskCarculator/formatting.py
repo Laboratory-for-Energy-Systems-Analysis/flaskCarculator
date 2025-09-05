@@ -104,6 +104,9 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     # --- Helpers -------------------------------------------------------------
     def _get_number(d, key, subkey="climate change"):
         """Fetch emission factor number d[key][subkey] with graceful fallbacks."""
+        print("key", key)
+        print("d", d)
+        print("subkey", subkey)
         if key in d and isinstance(d[key], dict) and subkey in d[key]:
             return float(d[key][subkey])
         return None
@@ -236,7 +239,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                     # Fuel part
                     fuel_value = _get_number(fuel_emission_factor, "climate change")
                     if fuel_value is None:
-                        raise KeyError("Can't find 'climate change' EF for PHEV fuel in BAFU_EMISSSION_FACTORS.")
+                        raise KeyError(f"Can't find 'climate change' EF for {powertrain} fuel in BAFU_EMISSSION_FACTORS.")
                     lca_results.loc[dict(
                         powertrain=powertrain, size=size, year=year,
                         impact_category="climate change", impact="energy chain"
