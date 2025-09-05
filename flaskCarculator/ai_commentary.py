@@ -128,9 +128,9 @@ Rules (follow exactly):
 - 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
 Return ONLY this JSON:
-{{
+{
   "summary": "text"
-}}
+}
 """
 
 
@@ -177,21 +177,24 @@ def _extract_json(text: str) -> dict:
 def _top_cost_drivers(components: dict, n=2):
     if not components:
         return []
-    items = sorted(((k, float(v)) for k, v in components.items() if isinstance(v, (int, float))), key=lambda kv: kv[1], reverse=True)
-    return [k for k, _ in items[:n]]
+    pairs = []
+    for k, v in components.items():
+        try:
+            pairs.append((k, float(v)))
+        except Exception:
+            pass
+    pairs.sort(key=lambda kv: kv[1], reverse=True)
+    return [k for k, _ in pairs[:n]]
 
 def _build_facts_table(slim_payload: dict, fu_code: str):
     rows = []
     for vid, d in slim_payload.items():
-        feats = d.get("feats", {}) or {}
-        attrs = d.get("attrs", {}) or {}
-        cost  = d.get("cost", {}) or {}
-        comps = cost.get("components") or {}
+        feats = d.get("feats") or {}
+        attrs = d.get("attrs") or {}
+        cost  = d.get("cost")  or {}
         rows.append({
             "id": vid,
             f"total_kgco2e_per_{fu_code}": d.get("total_2dp"),
-            f"cost_chf_per_{fu_code}": cost.get("total"),
-            "top_cost_drivers": _top_cost_drivers(comps, n=2),
             f"ttw_mj_per_{fu_code}": feats.get("ttw_energy_mj_per_fu"),
             "energy_intensity_kwh_per_km": feats.get("energy_intensity_kwh_per_km"),
             "available_payload_kg": feats.get("available_payload_kg"),
@@ -202,13 +205,13 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
             "power_kw": feats.get("power_kw"),
             "power_to_mass_kw_per_t": feats.get("power_to_mass_kw_per_t"),
             "mass_fraction_curb_vs_gross": feats.get("mass_fraction_curb_vs_gross"),
+            f"cost_chf_per_{fu_code}": (cost or {}).get("total"),
+            "top_cost_drivers": _top_cost_drivers((cost or {}).get("components") or {}, 2),
             "powertrain": attrs.get("powertrain"),
             "size": attrs.get("size"),
-            "electricity_type": attrs.get("electricity_type"),
-            "hydrogen_type": attrs.get("hydrogen_type"),
             "top_stages": attrs.get("top_stages"),
         })
-    # orientation for opening line
+    # orientation
     with_tot = [r for r in rows if isinstance(r.get(f"total_kgco2e_per_{fu_code}"), (int, float))]
     with_tot.sort(key=lambda r: r[f"total_kgco2e_per_{fu_code}"])
     orient = {}
@@ -220,6 +223,7 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
             "worst_total": with_tot[-1][f"total_kgco2e_per_{fu_code}"],
         }
     return {"per_vehicle": rows, "orientation": orient}
+
 
 
 _OPENAI_CLIENT = None
@@ -237,85 +241,32 @@ def _get_openai_client():
     return _OPENAI_CLIENT
 
 def _call_openai(*, system, prompt, max_tokens, temp=0.0, timeout_s):
+    # in _call_openai
     def _valid(data: dict) -> bool:
-        return (
-            isinstance(data, dict)
-            and isinstance(data.get("summary"), str) and data.get("summary", "").strip() != ""
-            and isinstance(data.get("capacity_and_range"), list)
-        )
+        return isinstance(data, dict) and isinstance(data.get("summary"), str) and data["summary"].strip() != ""
 
     try:
         client = _get_openai_client()
     except Exception as e:
         return {"_error": f"ClientInitError: {e}"}
 
-    # Ensure enough room to print valid JSON arguments (too small => truncation)
     max_tokens = int(max_tokens or 300)
     max_tokens = max(220, min(max_tokens, 1200))
 
-    print(f"Calling OpenAI model={OPENAI_MODEL} max_tokens={max_tokens} temp={temp} timeout_s={timeout_s}...")
-
-    # ---------- Attempt 1: function-call route ----------
     try:
-        resp = client.chat.completions.create(
+        r = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            tools=[COMPARE_TOOL],
-            tool_choice={"type": "function", "function": {"name": "emit_swisscargo_compare"}},  # forced tool
-            temperature=float(temp) if temp is not None else 0.0,  # use caller's temp
-            max_tokens=max_tokens,
-            timeout=float(timeout_s),
-            n=1,
-        )
-
-        choice = resp.choices[0]
-        tcalls = getattr(choice.message, "tool_calls", None)
-        data = {}
-
-        if tcalls:
-            args = tcalls[0].function.arguments or ""
-            try:
-                data = json.loads(args)
-            except json.JSONDecodeError:
-                data = _extract_json(args)  # salvage inner {...}
-
-        # Fallback to content if the model ignored tools
-        if (not tcalls or not _valid(data)):
-            content = (getattr(choice.message, "content", "") or "").strip()
-            if content:
-                try:
-                    data = json.loads(content)
-                except json.JSONDecodeError:
-                    data = _extract_json(content)
-
-        if _valid(data):
-            return data
-        # else fall through to Attempt 2
-
-    except json.JSONDecodeError as e:
-        # continue to Attempt 2
-        pass
-    except Exception as e:
-        # continue to Attempt 2
-        pass
-
-    # ---------- Attempt 2: plain JSON response (no tools) ----------
-    try:
-        resp2 = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},  # force strict JSON body
+            response_format={"type": "json_object"},
             temperature=float(temp) if temp is not None else 0.0,
             max_tokens=max_tokens,
             timeout=float(timeout_s),
             n=1,
         )
-        content = (resp2.choices[0].message.content or "").strip()
-        data = _extract_json(content)
+        data = _extract_json((r.choices[0].message.content or "").strip())
         if _valid(data):
             return data
-        return {"_error": "Model returned invalid/empty JSON after two attempts."}
-
+        return {"_error": "Model returned invalid/empty JSON."}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {e}"}
 
@@ -326,7 +277,7 @@ def _pick_lang(language: str) -> str:
 
 def _filter_essentials(veh_payload: dict) -> dict:
     KEEP_ATTRS = {
-        "capacity_utilization",  # stays in attrs; we won't mention it in prose
+        "capacity_utilization",  # kept but NOT discussed in prose
         "target_range_km",
         "electricity_consumption_kwh_per_100km",
         "fuel_consumption_l_per_100km",
@@ -335,19 +286,20 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "powertrain",
         "top_stages",
         "func_unit",
+        # NEW: masses
         "curb_mass_kg", "driving_mass_kg", "gross_mass_kg",
     }
     KEEP_FEATS = {
         "energy_intensity_kwh_per_km",
         "ttw_energy_mj_per_fu",
         "available_payload_kg",
+        # NEW: battery & power metrics
         "battery_energy_kwh",
         "power_kw",
         "power_to_mass_kw_per_t",
         "battery_specific_energy_kwh_per_t_vehicle",
         "mass_fraction_curb_vs_gross",
     }
-
     slim = {}
     for vid, d in veh_payload.items():
         slim[vid] = {
@@ -356,10 +308,8 @@ def _filter_essentials(veh_payload: dict) -> dict:
             "attrs": {k: d.get("attrs", {}).get(k) for k in KEEP_ATTRS if k in d.get("attrs", {})},
             "feats": {k: d.get("feats", {}).get(k) for k in KEEP_FEATS if k in d.get("feats", {})},
         }
-        # ---- NEW: cost passthrough ----
         if "cost" in d:
             slim[vid]["cost"] = d["cost"]
-        # keep stage shares if you find them useful in narration
         if "stage_shares_pct" in d:
             slim[vid]["stage_shares_pct"] = d["stage_shares_pct"]
     return slim
