@@ -128,9 +128,9 @@ Rules (follow exactly):
 - 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
 Return ONLY this JSON:
-{
+{{
   "summary": "text"
-}
+}}
 """
 
 
@@ -445,23 +445,17 @@ def ai_compare_across_vehicles_swisscargo(
             # If you control _call_openai, also set max_retries=0–1 to avoid surprise delays.
         )
 
-        if not result or result.get("_error"):
-            return {
-                "language": lang,
-                "comparison": {"summary": f"AI error: {result.get('_error', 'Empty response')}",
-                               "capacity_and_range": []},
-                "_error": result.get("_error", "Empty response"),
-            }
+        if not result:
+            return {"language": lang, "summary": "Empty response from AI."}
+        if result.get("_error"):
+            return {"language": lang, "summary": f"AI error: {result['_error']}"}
+
 
     except Exception as e:
-        return {
-            "language": lang,
-            "comparison": {"summary": "Time-limited comparison.", "capacity_and_range": []},
-            "_error": f"{type(e).__name__}: {e}",
-        }
+        return {"language": lang, "summary": f"AI error: {e}"}
 
     if not result:
-        return {"language": lang, "comparison": {"summary": "Empty response from AI.", "capacity_and_range": []}}
+        return {"language": lang, "summary": f"AI error: {result.get('_error')}"}
 
     if result.get("_error"):
         return {"language": lang, "summary": f"AI error: {result['_error']}"}
