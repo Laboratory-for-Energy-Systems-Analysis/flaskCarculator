@@ -336,6 +336,8 @@ def ai_compare_across_vehicles_swisscargo(
     if not veh_payload or not isinstance(veh_payload, dict):
         return {"language": "en", "summary": "No vehicles to compare."}
 
+    N = len(veh_payload) if isinstance(veh_payload, dict) else 0
+
     # Derive API budget from remaining time when available
     if remaining_before_ai_s and remaining_before_ai_s > 6.0:
         # keep 2s safety margin, cap at 20s
@@ -343,6 +345,10 @@ def ai_compare_across_vehicles_swisscargo(
     else:
         budget = float(timeout_s) if timeout_s and timeout_s > 0 else 8.0
         api_budget = max(4.0, min(budget - 0.2, 12.0))
+
+    # NEW: nudge budget for larger N (but never exceed 20s, or remaining time)
+    if N >= 5:
+        api_budget = min(api_budget + 2.0 + 0.8 * (N - 4), 20.0)
 
     if api_budget >= 10.0:
         detail = "deep"
