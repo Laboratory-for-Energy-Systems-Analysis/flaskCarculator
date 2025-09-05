@@ -131,13 +131,13 @@ Vehicles (id → {{indicator, total, total_2dp,
 {cost_policy}
 
 Rules:
-- Internally sort by TOTAL (ascending = best). DO NOT output a ranking list.
-- Treat vehicles with |Δ total| < {close_band} as "effectively similar".
-- When referencing stages in attrs["top_stages"]:
-    - If you mention "road", call it "road infrastructure construction & upkeep (embodied)".
-    - "energy chain" = upstream energy supply chain (production + delivery) for the carrier.
-- Payload policy: If feats["available_payload_kg"] is present, use it to discuss carrying capacity (e.g., which vehicle offers more payload and by how much). Prefer payload over capacity utilization for the narrative.
-- Do **not** discuss “capacity utilization” in the summary unless it is explicitly central to explaining a difference.
+- Use numbers from the "Authoritative numeric facts" block verbatim.
+- Never write the words "null" or "unknown" in the summary.
+- Include a cost sentence ONLY if ≥2 vehicles have numeric cost totals in facts.per_vehicle.
+- Include a tank-to-wheel energy sentence ONLY if ≥1 vehicle has a numeric ttw_mj_per_{fu_code}.
+- Mention available payload ONLY if ≥2 vehicles have numeric available_payload_kg in facts.per_vehicle; state the kg difference.
+- Do not discuss “capacity utilization” in the summary.
+
 
 - Summary (≤{word_limit} words):
     - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per {fu_code}).
@@ -201,6 +201,30 @@ def _extract_json(text: str) -> dict:
             except Exception: pass
         return {}
 
+def _build_facts_table(slim_payload: dict, fu_code: str):
+    rows = []
+    for vid, d in slim_payload.items():
+        feats = d.get("feats", {}) or {}
+        cost  = d.get("cost", {}) or {}
+        rows.append({
+            "id": vid,
+            "total_kgco2e_per_"+fu_code: d.get("total_2dp"),             # number
+            "ttw_mj_per_"+fu_code: feats.get("ttw_energy_mj_per_fu"),    # number|null
+            "available_payload_kg": feats.get("available_payload_kg"),   # number|null
+            "cost_chf_per_"+fu_code: cost.get("total"),                  # number|null
+        })
+    # derive best/worst by total (ascending)
+    with_tot = [r for r in rows if isinstance(r.get("total_kgco2e_per_"+fu_code), (int, float))]
+    with_tot.sort(key=lambda r: r["total_kgco2e_per_"+fu_code])
+    orient = {}
+    if with_tot:
+        orient = {
+            "best_id": with_tot[0]["id"],
+            "best_total": with_tot[0]["total_kgco2e_per_"+fu_code],
+            "worst_id": with_tot[-1]["id"],
+            "worst_total": with_tot[-1]["total_kgco2e_per_"+fu_code],
+        }
+    return {"per_vehicle": rows, "orientation": orient}
 
 
 
@@ -219,7 +243,7 @@ def _get_openai_client():
         )
     return _OPENAI_CLIENT
 
-def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
+def _call_openai(*, system, prompt, max_tokens, temp=0.0, timeout_s):
     def _valid(data: dict) -> bool:
         return (
             isinstance(data, dict)
@@ -233,7 +257,8 @@ def _call_openai(*, system, prompt, max_tokens, temp, timeout_s):
         return {"_error": f"ClientInitError: {e}"}
 
     # Ensure enough room to print valid JSON arguments (too small => truncation)
-    max_tokens = max(220, min(int(max_tokens or 300), 360))
+    max_tokens = int(max_tokens or 300)
+    max_tokens = max(220, min(max_tokens, 1200))
 
     # ---------- Attempt 1: function-call route ----------
     try:
@@ -401,6 +426,9 @@ def ai_compare_across_vehicles_swisscargo(
 
     # Keep payload compact; avoid pretty printing and ASCII escaping
 
+    facts = _build_facts_table(slim_payload, fu_code)
+    facts_str = json.dumps(facts, separators=(",", ":"), allow_nan=False)
+
     sanitized_payload = _sanitize_numbers(slim_payload)
     payload_str = json.dumps(
         sanitized_payload,
@@ -423,6 +451,8 @@ def ai_compare_across_vehicles_swisscargo(
         fu_code=fu_code,
         appendix_clause=appendix_clause
     ) + f"""
+        Authoritative numeric facts (use these numbers verbatim; do not re-derive):
+        {facts_str}
         Functional unit (FU): "{fu_label}" (code: {fu_code}).
         If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
 
