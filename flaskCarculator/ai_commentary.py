@@ -127,6 +127,21 @@ Rules (follow exactly):
 - Never write "null" or "unknown" in the summary; omit that sentence instead.
 - 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
+Formatting policy (mandatory):
+- Always refer to vehicles using the Name map (e.g., "Vehicle 1"), never the internal ids.
+- Use numbers from Display facts verbatim:
+  • Tank-to-wheel energy: 2 decimals (MJ per {fu_code})
+  • Cost per {fu_code}: 2 decimals (CHF per {fu_code})
+  • Battery size (kWh): integer
+  • Available payload (kg): integer
+  • Total GHG: use total_2dp as given (kgCO2-eq per {fu_code})
+
+Name map (id → label; use labels in the text):
+{name_map}
+
+Display facts (rounded; quote these numbers exactly):
+{display_facts}
+
 Return ONLY this JSON:
 {{
   "summary": "text"
@@ -186,43 +201,92 @@ def _top_cost_drivers(components: dict, n=2):
     pairs.sort(key=lambda kv: kv[1], reverse=True)
     return [k for k, _ in pairs[:n]]
 
+def _make_name_map(slim_payload: dict) -> dict:
+    """Map internal IDs to 'Vehicle 1/2/3…' in a stable order."""
+    name_map = {}
+    for i, vid in enumerate(slim_payload.keys(), start=1):
+        name_map[vid] = f"Vehicle {i}"
+    return name_map
+
 def _build_facts_table(slim_payload: dict, fu_code: str):
+    """Return per-vehicle facts (raw + display-rounded), a name map, and orientation."""
+    def r2(x):
+        try: return round(float(x), 2)
+        except Exception: return None
+    def r0(x):
+        try: return int(round(float(x)))
+        except Exception: return None
+
+    # Stable id -> "Vehicle N" mapping (enumeration keeps dict order)
+    name_map = {vid: f"Vehicle {i}" for i, vid in enumerate(slim_payload.keys(), start=1)}
+
     rows = []
     for vid, d in slim_payload.items():
         feats = d.get("feats") or {}
         attrs = d.get("attrs") or {}
         cost  = d.get("cost")  or {}
+
+        # raw values (kept as before)
+        raw_total_2dp = d.get("total_2dp")
+        raw_ttw_mj    = feats.get("ttw_energy_mj_per_fu")
+        raw_ei_kwhkm  = feats.get("energy_intensity_kwh_per_km")
+        raw_payload   = feats.get("available_payload_kg")
+        raw_batt_kwh  = feats.get("battery_energy_kwh")
+        raw_cost_fu   = cost.get("total")
+
+        # display-rounded values (NEW)
+        disp = {
+            f"total_kgco2e_per_{fu_code}": raw_total_2dp,                 # already 2dp upstream
+            f"ttw_mj_per_{fu_code}_2dp": r2(raw_ttw_mj),                  # 2 decimals
+            "energy_intensity_kwh_per_km_2dp": r2(raw_ei_kwhkm),          # 2 decimals
+            "available_payload_kg_int": r0(raw_payload),                  # integer
+            "battery_energy_kwh_int": r0(raw_batt_kwh),                   # integer
+            f"cost_chf_per_{fu_code}_2dp": r2(raw_cost_fu),               # 2 decimals
+            "cost_total_chf_int": r0(raw_cost_fu),                        # integer (if you ever say "total cost")
+        }
+
         rows.append({
             "id": vid,
-            f"total_kgco2e_per_{fu_code}": d.get("total_2dp"),
-            f"ttw_mj_per_{fu_code}": feats.get("ttw_energy_mj_per_fu"),
-            "energy_intensity_kwh_per_km": feats.get("energy_intensity_kwh_per_km"),
-            "available_payload_kg": feats.get("available_payload_kg"),
-            "battery_energy_kwh": feats.get("battery_energy_kwh"),
-            "curb_mass_kg": attrs.get("curb_mass_kg"),
-            "driving_mass_kg": attrs.get("driving_mass_kg"),
-            "gross_mass_kg": attrs.get("gross_mass_kg"),
+            "label": name_map[vid],                   # NEW: "Vehicle N"
+            # raw facts (unchanged keys)
+            f"total_kgco2e_per_{fu_code}": raw_total_2dp,
+            f"ttw_mj_per_{fu_code}": raw_ttw_mj,
+            "energy_intensity_kwh_per_km": raw_ei_kwhkm,
+            "available_payload_kg": raw_payload,
+            "battery_energy_kwh": raw_batt_kwh,
+            f"cost_chf_per_{fu_code}": raw_cost_fu,
+            "top_cost_drivers": _top_cost_drivers((cost or {}).get("components") or {}, 2),
             "power_kw": feats.get("power_kw"),
             "power_to_mass_kw_per_t": feats.get("power_to_mass_kw_per_t"),
             "mass_fraction_curb_vs_gross": feats.get("mass_fraction_curb_vs_gross"),
-            f"cost_chf_per_{fu_code}": (cost or {}).get("total"),
-            "top_cost_drivers": _top_cost_drivers((cost or {}).get("components") or {}, 2),
+            "curb_mass_kg": attrs.get("curb_mass_kg"),
+            "driving_mass_kg": attrs.get("driving_mass_kg"),
+            "gross_mass_kg": attrs.get("gross_mass_kg"),
             "powertrain": attrs.get("powertrain"),
             "size": attrs.get("size"),
             "top_stages": attrs.get("top_stages"),
+            # display (rounded) facts (NEW keys with *_2dp / *_int)
+            "display": disp,
         })
-    # orientation
-    with_tot = [r for r in rows if isinstance(r.get(f"total_kgco2e_per_{fu_code}"), (int, float))]
-    with_tot.sort(key=lambda r: r[f"total_kgco2e_per_{fu_code}"])
+
+    # Orientation by total (use labels too)
+    key = f"total_kgco2e_per_{fu_code}"
+    with_tot = [r for r in rows if isinstance(r.get(key), (int, float))]
+    with_tot.sort(key=lambda r: r[key])
+
     orient = {}
     if with_tot:
         orient = {
             "best_id": with_tot[0]["id"],
-            "best_total": with_tot[0][f"total_kgco2e_per_{fu_code}"],
+            "best_label": with_tot[0]["label"],            # NEW
+            "best_total": with_tot[0][key],
             "worst_id": with_tot[-1]["id"],
-            "worst_total": with_tot[-1][f"total_kgco2e_per_{fu_code}"],
+            "worst_label": with_tot[-1]["label"],          # NEW
+            "worst_total": with_tot[-1][key],
         }
-    return {"per_vehicle": rows, "orientation": orient}
+
+    return {"per_vehicle": rows, "orientation": orient, "name_map": name_map}
+
 
 
 
@@ -408,15 +472,23 @@ def ai_compare_across_vehicles_swisscargo(
 
     appendix_clause = "" if detail == "compact" else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
 
+    name_map = _make_name_map(slim_payload)
+    display_facts = _build_facts_table(slim_payload, fu_code)
+
+    name_map_str = json.dumps(name_map, separators=(",", ":"), ensure_ascii=True)
+    display_facts_str = json.dumps(display_facts, separators=(",", ":"), allow_nan=False, ensure_ascii=True)
+
     prompt = tmpl.format(
         veh_payload=payload_str,
         close_band=0.02,
-        stage_glossary="",  # keep compact; short preamble = better JSON
-        capacity_utilization_note="",  # remove utilization guidance
+        stage_glossary="",
+        capacity_utilization_note="",
         cost_policy=COST_POLICY.strip(),
         word_limit=cfg["word_limit"],
         fu_code=fu_code,
-        appendix_clause=appendix_clause
+        appendix_clause=appendix_clause,
+        name_map=name_map_str,
+        display_facts=display_facts_str,
     ) + f"""
         Authoritative numeric facts (use these numbers verbatim; do not re-derive):
         {facts_str}
