@@ -116,7 +116,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
         Try reasonable keys that should contain an electricity grid EF per kWh.
         Adjust if your keys differ.
         """
-        for k in ("PHEV-e", "BEV", "electricity-grid", "grid-electricity"):
+        for k in ("BEV", "PHEV-e", "electricity-grid", "grid-electricity"):
             v = _get_number(BAFU_EMISSSION_FACTORS, k)
             if v is not None:
                 return v
@@ -237,7 +237,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                     )] = float(electricity_consumption * blended_elec_ef) * factor
 
                     # Fuel part
-                    fuel_value = _get_number(fuel_emission_factor, "climate change")
+                    fuel_value = _get_number(fuel_emission_factor, powertrain, "climate change")
                     if fuel_value is None:
                         raise KeyError(f"Can't find 'climate change' EF for {powertrain} fuel in BAFU_EMISSSION_FACTORS.")
                     lca_results.loc[dict(
