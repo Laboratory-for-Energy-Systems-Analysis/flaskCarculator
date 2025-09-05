@@ -31,7 +31,6 @@ data = {
             "resale_year": 2028,
              "canton": "Bern",
         },
-
         # {
         #      "id": "BEEV002",
         #      "vehicle_type": "truck",
