@@ -68,6 +68,11 @@ Rules (follow exactly):
 - Never write "null" or "unknown" in the summary; omit that sentence instead.
 - 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
+Coverage policy:
+- There are {veh_count} vehicles. Mention every vehicle at least once by label.
+- Include one compact line enumerating all vehicles with their GHG and cost, e.g.:
+  Vehicle 1: 0.02 kgCO2-eq/{fu_code}, 0.05 CHF/{fu_code}; Vehicle 2: ...
+
 Formatting policy (mandatory):
 - Always refer to vehicles using the Name map (e.g., "Vehicle 1"), never the internal ids.
 - Use numbers from Display facts verbatim:
@@ -396,9 +401,9 @@ def ai_compare_across_vehicles_swisscargo(
     # choose template based on detail
     tmpl = PROMPT_TMPL_COMPACT if detail == "compact" else PROMPT_TMPL_STANDARD
 
-
     name_map_str = json.dumps(facts["name_map"], separators=(",", ":"), ensure_ascii=True)
-    display_facts_str = json.dumps(facts["name_map"], separators=(",", ":"), allow_nan=False, ensure_ascii=True)
+    display_facts_str = json.dumps(facts["per_vehicle"], separators=(",", ":"), allow_nan=False, ensure_ascii=True)
+    veh_count = len(slim_payload)
 
     prompt = tmpl.format(
         veh_payload=payload_str,
@@ -410,6 +415,7 @@ def ai_compare_across_vehicles_swisscargo(
         fu_code=fu_code,
         name_map=name_map_str,
         display_facts=display_facts_str,
+        veh_count=veh_count,
     ) + f"""
         Authoritative numeric facts (use these numbers verbatim; do not re-derive):
         {facts_str}
