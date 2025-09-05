@@ -153,6 +153,7 @@ def calculate_lca():
             vehicle["results_bafu"] = format_results_for_tcs(data=model, params=vehicle, bafu=True)
 
         elif data.get("nomenclature") == "swisscargo":
+            print(model.bafu_results)
             vehicle["results"] = format_results_for_swisscargo(data=model, params=vehicle)
             # add cost results
             factor = 1 if model.inventory.func_unit == "vkm" else (1 / (model.array.sel(parameter="cargo mass").values.item() / 1000))
