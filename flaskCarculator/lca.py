@@ -140,8 +140,6 @@ def set_vehicle_properties_before_run(model, params):
             "residual value share"
         ]
 
-
-
     return model
 
 

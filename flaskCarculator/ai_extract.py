@@ -139,6 +139,10 @@ def derive_features_from_vehicle(v: dict) -> dict:
 
     if gm and gm > 0 and cm is not None:
         feats["mass_fraction_curb_vs_gross"] = cm / gm
+        # NEW: available payload (kg) = gross - curb, only if positive
+        if gm > cm:
+            feats["available_payload_kg"] = gm - cm
+
     if dm and dm > 0 and pwr:
         feats["power_to_mass_kw_per_t"] = pwr / (dm / 1000.0)
     if cons_el is not None:
@@ -158,9 +162,9 @@ def derive_features_from_vehicle(v: dict) -> dict:
         else:
             feats["capacity_utilization_label"] = "high"
 
-    # No theoretical_range_km or range_headroom_km computed anymore
-    if capu and capu > 0 and gm:
-        feats["payload_utilization_ratio"] = capu
+    # (REMOVED) payload_utilization_ratio – we no longer compute or send this
+    # if capu and capu > 0 and gm:
+    #     feats["payload_utilization_ratio"] = capu
 
     # Tank-to-wheel energy is given in kJ per vkm
     ttw_energy_kj_per_vkm = _safe_float(v.get("TtW energy"))
@@ -178,4 +182,3 @@ def derive_features_from_vehicle(v: dict) -> dict:
                 feats["ttw_energy_mj_per_fu"] = (ttw_energy_kj_per_vkm / cargo_mass_tons) / 1000.0
 
     return {k: v for k, v in feats.items() if v is not None}
-
