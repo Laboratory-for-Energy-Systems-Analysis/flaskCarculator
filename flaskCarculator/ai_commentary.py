@@ -38,38 +38,23 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
 
 # Strict output schema via function calling
 # ai_commentary.py – add near the top
+# comment_ai.py
+
 COMPARE_TOOL = {
     "type": "function",
     "function": {
         "name": "emit_swisscargo_compare",
-        "description": "Emit a structured comparison summary for SwissCargo.",
+        "description": "Emit a detailed comparison summary for SwissCargo.",
         "parameters": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["summary", "capacity_and_range"],
+            "required": ["summary"],
             "properties": {
-                "summary": {"type": "string"},
-                "capacity_and_range": {
-                    "type": "array",
-                    "maxItems": 2,  # <= keep tiny to avoid truncation
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "required": ["id","capacity_utilization","utilization_value","range_km_est","note"],
-                        "properties": {
-                            "id": {"type":"string"},
-                            "capacity_utilization": {"type":"string","enum":["low","medium","high","unknown"]},
-                            "utilization_value": {"type":["number","null"]},
-                            "range_km_est": {"type":["integer","null"]},
-                            "note": {"type":"string"}
-                        }
-                    }
-                }
+                "summary": {"type": "string"}
             }
         }
     }
 }
-
 
 
 
@@ -118,48 +103,39 @@ APPENDIX_JSON_CLAUSE = """,
 # (Optional) keep APPENDIX_JSON_CLAUSE for other modes, but don't use it in compact.
 # APPENDIX_JSON_CLAUSE = ...  # leave as-is
 
+# COMPACT template: output only summary
 PROMPT_TMPL_COMPACT = """
 Vehicles (id → {{indicator, total, total_2dp,
-  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit}},
-  feats:{{capacity_utilization_label, energy_intensity_kwh_per_km, ttw_energy_mj_per_fu, available_payload_kg}},
+  attrs:{{capacity_utilization, target_range_km, electricity_consumption_kwh_per_100km, fuel_consumption_l_per_100km, electricity_type, hydrogen_type, powertrain, top_stages, func_unit, curb_mass_kg, driving_mass_kg, gross_mass_kg}},
+  feats:{{energy_intensity_kwh_per_km, ttw_energy_mj_per_fu, available_payload_kg, battery_energy_kwh, power_kw, power_to_mass_kw_per_t, battery_specific_energy_kwh_per_t_vehicle, mass_fraction_curb_vs_gross}},
   cost:{{currency, per_fu, total, components}},
   stage_shares_pct:{{... optional ...}}}}):
 {veh_payload}
 
-{stage_glossary}
-{capacity_utilization_note}
 {cost_policy}
 
-Rules:
-- Use numbers from the "Authoritative numeric facts" block verbatim.
-- Never write the words "null" or "unknown" in the summary.
-- Include a cost sentence ONLY if ≥2 vehicles have numeric cost totals in facts.per_vehicle.
-- Include a tank-to-wheel energy sentence ONLY if ≥1 vehicle has a numeric ttw_mj_per_{fu_code}.
-- Mention available payload ONLY if ≥2 vehicles have numeric available_payload_kg in facts.per_vehicle; state the kg difference.
-- Do not discuss “capacity utilization” in the summary.
+Rules (follow exactly):
+- Use numbers from "Authoritative numeric facts" verbatim; do not re-derive.
+- Sort internally by TOTAL (ascending) to orient your narrative; do NOT output a ranking list.
+- Treat vehicles with |Δ total| < {close_band} as "effectively similar".
+- Stage naming: "energy chain" = upstream energy supply chain (production + delivery); "road" must be called "road infrastructure construction & upkeep (embodied)".
+- Payload policy: use feats["available_payload_kg"] (gross − curb) to discuss carrying capacity; **do not** discuss "capacity utilization" in the summary.
+- Cost sentence: include only if ≥2 vehicles have numeric cost totals; name top 1–2 cost drivers from the provided components.
+- Tank-to-wheel energy sentence: include only if any vehicle has feats["ttw_energy_mj_per_fu"].
+- Battery & masses: mention battery_energy_kwh, curb/driving/gross mass, mass_fraction_curb_vs_gross, and power_to_mass_kw_per_t when they help explain differences.
+- Stage drivers: use attrs["top_stages"] and any stage_shares_pct if present; tie them to observed differences.
+- Never write "null" or "unknown" in the summary; omit that sentence instead.
+- 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
 
-
-- Summary (≤{word_limit} words):
-    - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per {fu_code}).
-    - One **cost** sentence: lowest vs highest totals (CHF per {fu_code}) and dominant cost driver(s).
-    - Interpret stage drivers (“energy chain”, “road infrastructure construction & upkeep (embodied)”).
-    - Report **tank-to-wheel energy** in MJ per {fu_code} when available and relate it to results.
-    - Mention **available payload** when it explains differences (state kg deltas).
-    - Note mixed functional units if present; avoid cross-unit comparisons.
-
-Output policy:
-- Output only JSON with keys: "summary" and "capacity_and_range".
-- If a value is unknown, use null. No placeholders like number|null or "...".
-- Numbers must be numbers (not strings).
+Data hints (binary flags to decide which sentences to include):
+{hints_str}
 
 Return ONLY this JSON:
 {{
-  "summary": "text",
-  "capacity_and_range": [
-    {{"id":"vehicle-id","capacity_utilization":"low","utilization_value":0.5,"range_km_est":120,"note":"short"}}
-  ]
+  "summary": "text"
 }}
 """
+
 
 PROMPT_TMPL_STANDARD = PROMPT_TMPL_COMPACT.replace(
     "Summary (≤{word_limit} words):",
@@ -201,31 +177,52 @@ def _extract_json(text: str) -> dict:
             except Exception: pass
         return {}
 
+def _top_cost_drivers(components: dict, n=2):
+    if not components:
+        return []
+    items = sorted(((k, float(v)) for k, v in components.items() if isinstance(v, (int, float))), key=lambda kv: kv[1], reverse=True)
+    return [k for k, _ in items[:n]]
+
 def _build_facts_table(slim_payload: dict, fu_code: str):
     rows = []
     for vid, d in slim_payload.items():
         feats = d.get("feats", {}) or {}
+        attrs = d.get("attrs", {}) or {}
         cost  = d.get("cost", {}) or {}
+        comps = cost.get("components") or {}
         rows.append({
             "id": vid,
-            "total_kgco2e_per_"+fu_code: d.get("total_2dp"),             # number
-            "ttw_mj_per_"+fu_code: feats.get("ttw_energy_mj_per_fu"),    # number|null
-            "available_payload_kg": feats.get("available_payload_kg"),   # number|null
-            "cost_chf_per_"+fu_code: cost.get("total"),                  # number|null
+            f"total_kgco2e_per_{fu_code}": d.get("total_2dp"),
+            f"cost_chf_per_{fu_code}": cost.get("total"),
+            "top_cost_drivers": _top_cost_drivers(comps, n=2),
+            f"ttw_mj_per_{fu_code}": feats.get("ttw_energy_mj_per_fu"),
+            "energy_intensity_kwh_per_km": feats.get("energy_intensity_kwh_per_km"),
+            "available_payload_kg": feats.get("available_payload_kg"),
+            "battery_energy_kwh": feats.get("battery_energy_kwh"),
+            "curb_mass_kg": attrs.get("curb_mass_kg"),
+            "driving_mass_kg": attrs.get("driving_mass_kg"),
+            "gross_mass_kg": attrs.get("gross_mass_kg"),
+            "power_kw": feats.get("power_kw"),
+            "power_to_mass_kw_per_t": feats.get("power_to_mass_kw_per_t"),
+            "mass_fraction_curb_vs_gross": feats.get("mass_fraction_curb_vs_gross"),
+            "powertrain": attrs.get("powertrain"),
+            "size": attrs.get("size"),
+            "electricity_type": attrs.get("electricity_type"),
+            "hydrogen_type": attrs.get("hydrogen_type"),
+            "top_stages": attrs.get("top_stages"),
         })
-    # derive best/worst by total (ascending)
-    with_tot = [r for r in rows if isinstance(r.get("total_kgco2e_per_"+fu_code), (int, float))]
-    with_tot.sort(key=lambda r: r["total_kgco2e_per_"+fu_code])
+    # orientation for opening line
+    with_tot = [r for r in rows if isinstance(r.get(f"total_kgco2e_per_{fu_code}"), (int, float))]
+    with_tot.sort(key=lambda r: r[f"total_kgco2e_per_{fu_code}"])
     orient = {}
     if with_tot:
         orient = {
             "best_id": with_tot[0]["id"],
-            "best_total": with_tot[0]["total_kgco2e_per_"+fu_code],
+            "best_total": with_tot[0][f"total_kgco2e_per_{fu_code}"],
             "worst_id": with_tot[-1]["id"],
-            "worst_total": with_tot[-1]["total_kgco2e_per_"+fu_code],
+            "worst_total": with_tot[-1][f"total_kgco2e_per_{fu_code}"],
         }
     return {"per_vehicle": rows, "orientation": orient}
-
 
 
 _OPENAI_CLIENT = None
@@ -259,6 +256,8 @@ def _call_openai(*, system, prompt, max_tokens, temp=0.0, timeout_s):
     # Ensure enough room to print valid JSON arguments (too small => truncation)
     max_tokens = int(max_tokens or 300)
     max_tokens = max(220, min(max_tokens, 1200))
+
+    print(f"Calling OpenAI model={OPENAI_MODEL} max_tokens={max_tokens} temp={temp} timeout_s={timeout_s}...")
 
     # ---------- Attempt 1: function-call route ----------
     try:
@@ -331,7 +330,7 @@ def _pick_lang(language: str) -> str:
 
 def _filter_essentials(veh_payload: dict) -> dict:
     KEEP_ATTRS = {
-        "capacity_utilization",
+        "capacity_utilization",  # stays in attrs; we won't mention it in prose
         "target_range_km",
         "electricity_consumption_kwh_per_100km",
         "fuel_consumption_l_per_100km",
@@ -340,13 +339,19 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "powertrain",
         "top_stages",
         "func_unit",
+        "curb_mass_kg", "driving_mass_kg", "gross_mass_kg",
     }
     KEEP_FEATS = {
         "energy_intensity_kwh_per_km",
         "ttw_energy_mj_per_fu",
-        "available_payload_kg",   # ensure it passes through
-        # (capacity fields intentionally omitted from feats; they still exist in attrs if present)
+        "available_payload_kg",
+        "battery_energy_kwh",
+        "power_kw",
+        "power_to_mass_kw_per_t",
+        "battery_specific_energy_kwh_per_t_vehicle",
+        "mass_fraction_curb_vs_gross",
     }
+
     slim = {}
     for vid, d in veh_payload.items():
         slim[vid] = {
@@ -390,7 +395,16 @@ def ai_compare_across_vehicles_swisscargo(
     # Use (almost) the full slice the route gave us; cap to something sane if you want.
     api_budget = max(1.8, min(budget - 0.3, 12.0))  # e.g., 7.2s when budget=7.5
 
-    cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"]).copy()
+    # choose detail by available API budget
+    if api_budget >= 9.0:
+        detail = "deep"
+    elif api_budget >= 6.0:
+        detail = "standard"
+    else:
+        detail = "compact"
+
+    cfg = DETAIL_CONFIG[detail].copy()
+
     lang = _pick_lang(language)
 
     system = (
@@ -497,28 +511,10 @@ def ai_compare_across_vehicles_swisscargo(
         return {"language": lang, "comparison": {"summary": "Empty response from AI.", "capacity_and_range": []}}
 
     if result.get("_error"):
-        return {
-            "language": lang,
-            "comparison": {
-                "summary": f"AI error: {result['_error']}",
-                "capacity_and_range": []
-            },
-            "_error": result["_error"],
-        }
+        return {"language": lang, "summary": f"AI error: {result['_error']}"}
 
-    cleaned = {
-        "summary": (result.get("summary") or "").strip(),
-        "capacity_and_range": [],
-    }
-    for item in result.get("capacity_and_range", []):
-        cleaned["capacity_and_range"].append({
-            "id": item.get("id"),
-            "capacity_utilization": item.get("capacity_utilization"),
-            "utilization_value": _round_or_none(item.get("utilization_value"), nd=3),
-            "range_km_est": _int_or_none(item.get("range_km_est")),
-            "note": (item.get("note") or "").strip()[:60],
-        })
-    return {"language": lang, "comparison": cleaned}
+    summary_text = (result.get("summary") or "").strip()
+    return {"language": lang, "summary": summary_text}
 
 
 
