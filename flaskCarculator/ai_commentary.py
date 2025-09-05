@@ -1,7 +1,6 @@
 # ai_commentary.py
 import math
 from openai import OpenAI
-from openai import OpenAI
 from httpx import Timeout
 import os, json
 
@@ -35,45 +34,6 @@ def _resolve_fu_from_payload(slim_payload: dict, fallback="vkm"):
     return chosen, mixed
 
 
-
-# Strict output schema via function calling
-# ai_commentary.py – add near the top
-# comment_ai.py
-
-COMPARE_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "emit_swisscargo_compare",
-        "description": "Emit a detailed comparison summary for SwissCargo.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["summary"],
-            "properties": {
-                "summary": {"type": "string"}
-            }
-        }
-    }
-}
-
-
-
-
-STAGE_GLOSSARY = """
-Stage glossary (authoritative definitions; follow strictly):
-- "road": Embodied greenhouse-gas emissions from constructing and maintaining the road infrastructure used by the trucks.
-  This is NOT tailpipe/driving emissions.
-- "energy chain": Upstream greenhouse-gas emissions from producing and supplying the energy carrier
-  (e.g., refining and distributing diesel, generating and delivering electricity, producing and compressing/transporting hydrogen).
-"""
-
-CAPACITY_UTILIZATION_NOTE = """
-Capacity utilization policy (authoritative):
-- "capacity utilization" is the logistics load factor: the fraction of total carrying capacity that is actually used.
-- It reflects fleet/operations planning (how full the trucks run), not mechanical/engine efficiency or drivetrain performance.
-- Do NOT equate capacity utilization with efficiency; treat it as a demand allocation factor over the functional unit.
-"""
-
 COST_POLICY = """
 Cost payload semantics (authoritative):
 - The "cost" block contains CHF per functional unit (FU) for each vehicle.
@@ -83,25 +43,6 @@ Cost payload semantics (authoritative):
 - Do NOT invent missing values; only use provided numbers.
 """
 
-APPENDIX_JSON_CLAUSE = """,
-  "appendix": {{
-    "cost_overview": [
-      {{"id":"...","total_chf_per_{fu_code}": number|null,"top_cost_drivers": ["energy cost","amortised purchase", "..."]}}
-    ],
-    "stage_breakdown": [
-      {{"id":"...","top_stages":["energy chain","road infrastructure (embodied)"],"stage_shares_pct": {{ "energy chain": number, "road": number }} }}
-    ],
-    "per_vehicle": [
-      {{"id":"...","ghg_total_kgco2e_per_{fu_code}": number,"tank_to_wheel_mj_per_{fu_code}": number|null,"capacity_utilization_pct": number|null,"note":"≤18 words"}}
-    ],
-    "notes": ["short bullet 1","short bullet 2"]
-  }}"""
-
-# Replace your PROMPT_TMPL_COMPACT with this (only the tail is new)
-# comment_ai.py
-
-# (Optional) keep APPENDIX_JSON_CLAUSE for other modes, but don't use it in compact.
-# APPENDIX_JSON_CLAUSE = ...  # leave as-is
 
 # COMPACT template: output only summary
 PROMPT_TMPL_COMPACT = """
@@ -201,12 +142,6 @@ def _top_cost_drivers(components: dict, n=2):
     pairs.sort(key=lambda kv: kv[1], reverse=True)
     return [k for k, _ in pairs[:n]]
 
-def _make_name_map(slim_payload: dict) -> dict:
-    """Map internal IDs to 'Vehicle 1/2/3…' in a stable order."""
-    name_map = {}
-    for i, vid in enumerate(slim_payload.keys(), start=1):
-        name_map[vid] = f"Vehicle {i}"
-    return name_map
 
 def _build_facts_table(slim_payload: dict, fu_code: str):
     """Return per-vehicle facts (raw + display-rounded), a name map, and orientation."""
@@ -386,15 +321,6 @@ def _round_or_none(x, nd=3):
     except Exception:
         return None
 
-def _int_or_none(x):
-    try:
-        return int(round(float(x)))
-    except Exception:
-        return None
-
-
-# ai_commentary.py
-
 def ai_compare_across_vehicles_swisscargo(
     veh_payload: dict,
     language="en",
@@ -452,7 +378,7 @@ def ai_compare_across_vehicles_swisscargo(
                 keep["components"] = comps
             d["cost"] = keep
 
-    fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
+    fu_code, _ = _resolve_fu_from_payload(slim_payload, fallback="vkm")
     fu_label = FU_NAME_MAP.get(fu_code, "vehicle-kilometer")
 
     # Keep payload compact; avoid pretty printing and ASCII escaping
@@ -470,13 +396,9 @@ def ai_compare_across_vehicles_swisscargo(
     # choose template based on detail
     tmpl = PROMPT_TMPL_COMPACT if detail == "compact" else PROMPT_TMPL_STANDARD
 
-    appendix_clause = "" if detail == "compact" else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
 
-    name_map = _make_name_map(slim_payload)
-    display_facts = _build_facts_table(slim_payload, fu_code)
-
-    name_map_str = json.dumps(name_map, separators=(",", ":"), ensure_ascii=True)
-    display_facts_str = json.dumps(display_facts, separators=(",", ":"), allow_nan=False, ensure_ascii=True)
+    name_map_str = json.dumps(facts["name_map"], separators=(",", ":"), ensure_ascii=True)
+    display_facts_str = json.dumps(facts["name_map"], separators=(",", ":"), allow_nan=False, ensure_ascii=True)
 
     prompt = tmpl.format(
         veh_payload=payload_str,
@@ -486,7 +408,6 @@ def ai_compare_across_vehicles_swisscargo(
         cost_policy=COST_POLICY.strip(),
         word_limit=cfg["word_limit"],
         fu_code=fu_code,
-        appendix_clause=appendix_clause,
         name_map=name_map_str,
         display_facts=display_facts_str,
     ) + f"""

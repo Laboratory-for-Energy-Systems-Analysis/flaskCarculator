@@ -87,11 +87,6 @@ def _safe_float(x, default=None):
     except Exception:
         return default
 
-def _kj_to_mj(x):
-    try:
-        return float(x) / 1000.0
-    except Exception:
-        return None
 
 def derive_features_from_vehicle(v: dict) -> dict:
     feats = {}
@@ -99,16 +94,11 @@ def derive_features_from_vehicle(v: dict) -> dict:
     # Identity
     feats["powertrain"] = v.get("powertrain")
     feats["size"] = v.get("size")
-    feats["country"] = v.get("country")
-    feats["year"] = v.get("year")
 
     # Energy / efficiency
     feats["electricity_consumption_kwh_per_100km"] = _safe_float(v.get("electricity consumption"))
     feats["fuel_consumption_l_per_100km"] = _safe_float(v.get("fuel consumption"))
     feats["ttw_efficiency"] = _safe_float(v.get("TtW efficiency"))
-    feats["ttw_energy_kwh"] = _safe_float(v.get("TtW energy"))
-    feats["ttw_energy_electric_kwh"] = _safe_float(v.get("TtW energy, electric mode"))
-    feats["ttw_energy_combustion_kwh"] = _safe_float(v.get("TtW energy, combustion mode"))
     feats["electricity_type"] = v.get("electricity")
     feats["hydrogen_type"] = v.get("hydrogen")
 
@@ -119,7 +109,6 @@ def derive_features_from_vehicle(v: dict) -> dict:
     feats["gross_mass_kg"] = _safe_float(v.get("gross mass"))
     feats["cargo_mass_kg"] = _safe_float(v.get("cargo mass"))
     feats["capacity_utilization"] = _safe_float(v.get("capacity utilization"))
-    feats["battery_cell_energy_density_kwh_per_kg"] = _safe_float(v.get("battery cell energy density"))
 
     # Power
     feats["power_kw"] = _safe_float(v.get("power") or v.get("electric power"))
@@ -134,7 +123,6 @@ def derive_features_from_vehicle(v: dict) -> dict:
     bat = feats.get("battery_energy_kwh")
     cons_el = feats.get("electricity_consumption_kwh_per_100km")
     cons_f = feats.get("fuel_consumption_l_per_100km")
-    capu = feats.get("capacity_utilization") or 0.0
     pwr = feats.get("power_kw") or 0.0
 
     if gm and gm > 0 and cm is not None:
@@ -147,8 +135,6 @@ def derive_features_from_vehicle(v: dict) -> dict:
         feats["power_to_mass_kw_per_t"] = pwr / (dm / 1000.0)
     if cons_el is not None:
         feats["energy_intensity_kwh_per_km"] = cons_el / 100.0  # /100 km → /km
-    if cons_f is not None:
-        feats["fuel_intensity_l_per_km"] = cons_f / 100.0
     if bat and dm and dm > 0:
         feats["battery_specific_energy_kwh_per_t_vehicle"] = bat / (dm / 1000.0)
 
