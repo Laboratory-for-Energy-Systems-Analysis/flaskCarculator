@@ -391,7 +391,7 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
             weight_source = "original class name"
         else:
             tonnes = None
-    if canton in {"ag", "aargau"} and "cargo mass" not in vehicle_data:
+    if canton in {"ag", "aargau"} and "payload" not in vehicle_data:
         # For AG we must use payload-based table; weight may still be useful for your other modules.
         pass
     if tonnes is None and canton not in {"ag","aargau"}:
@@ -423,7 +423,7 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
         annual = _ticino_annual(float(vehicle_data["power"]))
         notes.append("Ticino formula: CHF 105 + 10 × kW.")
 
-    elif canton in {"gr","graubunden","graubuenden"}:
+    elif canton in {"gr","graubunden","graubuenden", "grisons"}:
         annual = _graubuenden_annual(weight_kg, pt)
         notes.append("Graubünden: EV/(H)EV trucks pay 20% of Category-2 weight tariff.")
 
@@ -452,9 +452,9 @@ def canton_truck_tax(vehicle_data: Dict[str, Any], *, band_estimation: str = "mi
         notes.append("Fribourg: heavy-vehicle fixed weight brackets (2025 tariff).")
 
     elif canton in {"ag","aargau"}:
-        if "cargo mass" not in vehicle_data:
-            raise ValueError("Aargau requires 'cargo mass' (Nutzlast) for trucks.")
-        annual = _aargau_annual(int(vehicle_data["cargo mass"]))
+        if "payload" not in vehicle_data:
+            raise ValueError("Aargau requires 'payload' (Nutzlast) for trucks.")
+        annual = _aargau_annual(int(vehicle_data["payload"]))
         notes.append("Aargau: trucks taxed by payload (Nutzlast) bands.")
 
     else:

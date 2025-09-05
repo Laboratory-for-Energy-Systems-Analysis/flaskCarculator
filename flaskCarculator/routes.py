@@ -26,7 +26,8 @@ def calculate_lca():
     This function receives the input data from the user, validates it, and calculates the LCA results.
     :return: JSON response
     """
-    deadline = time.time() + 24.0  # leave ~6s headroom for Heroku’s 30s
+    start = time.monotonic()
+    deadline = start + 28.0
 
     data = request.json
 
@@ -243,17 +244,27 @@ def calculate_lca():
         gc.collect()
 
     if ai_compare and data.get("nomenclature") == "swisscargo":
-        try:
-            payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=True)
-            remaining = max(3.0, deadline - time.time())  # seconds left for AI
-            if remaining < 4.0:
-                data["ai_comparison_note"] = "Skipped AI comparison to avoid timeout."
-            else:
-                data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
-                    payload, language=ai_language, detail="deep", timeout_s=min(10.0, remaining - 1.0)
-                )
-        except Exception as e:
-            data["ai_comparison_error"] = str(e)
+        payload = build_compare_payload_swisscargo(data["vehicles"], include_stage_shares=False)
+
+        RESPONSE_BUFFER = 8.0  # time to JSON, send, jitter
+        MIN_AI_BUDGET = 4.0  # won't call AI unless we can give this much
+        remaining = deadline - time.monotonic()
+        ai_budget = remaining - RESPONSE_BUFFER
+
+        if ai_budget >= MIN_AI_BUDGET:
+            ai_timeout = min(7.5, ai_budget)  # allow up to ~7.5 s
+            data["ai_comparison"] = ai_compare_across_vehicles_swisscargo(
+                payload, language=ai_language, detail="compact", timeout_s=ai_timeout
+            )
+            data["ai_timing"] = {
+                "remaining_before_ai_s": round(remaining, 2),
+                "ai_budget_s": round(ai_timeout, 2)
+            }  # keep while debugging
+        else:
+            data["ai_comparison_note"] = (
+                f"Skipped AI (remaining={remaining:.2f}s, needs ≥{MIN_AI_BUDGET + RESPONSE_BUFFER:.1f}s)."
+            )
+
 
 
 
@@ -265,7 +276,7 @@ def calculate_lca():
 
 def serialize_xarray(data):
     """
-    Turn xarray into nested dictionary, which cna be serialized to JSON.
+    Turn xarray into a nested dictionary, which can be serialized to JSON.
     :param data: xarray
     :return: dict
     """

@@ -131,10 +131,16 @@ def set_vehicle_properties_before_run(model, params):
         model.array.loc[dict(parameter="interest rate")] = params["interest rate"]
 
     if "share tolled roads" in params:
-        print(f"Setting share tolled roads to {params['share tolled roads']}")
         model.array.loc[dict(parameter="share tolled roads")] = params[
             "share tolled roads"
         ]
+
+    if "residual value share" in params:
+        model.array.loc[dict(parameter="residual value share")] = params[
+            "residual value share"
+        ]
+
+
 
     return model
 
@@ -359,7 +365,6 @@ def set_properties_for_plugin(model, params):
 def redimension_battery_and_range(m, params):
     if params.get("electric energy stored", 0) > 0:
         m["electric energy stored"] = params["electric energy stored"]
-        print(f"Redimensioning battery to {m['electric energy stored'].values} kWh")
         m["battery cell mass"] = (
             m["electric energy stored"] / m["battery cell energy density"]
         )
@@ -374,10 +379,6 @@ def redimension_battery_and_range(m, params):
             m[var] = m["electric energy stored"] * 3600 / m["TtW energy, electric mode"]
             m.set_vehicle_masses()
             m.override_battery_capacity()
-            #m.calculate_ttw_energy()
-            #m.drop_hybrid()
-
-            print(f"After Redimensioning battery: {m['electric energy stored'].values} kWh")
 
             if params.get(var, 0) > 0:
                 m.array.loc[dict(parameter=var)] = params[var]
@@ -421,7 +422,6 @@ def initialize_model(params, nomenclature=None):
             },
         }
 
-        print(f"Energy storage set to: {energy_storage}")
 
     if params.get("battery technology", None):
         if energy_storage is None:
@@ -431,8 +431,6 @@ def initialize_model(params, nomenclature=None):
                 "battery technology"
             ]
         }
-
-        print(f"Battery storage set to: {energy_storage}")
 
     power = None
 
@@ -533,29 +531,19 @@ def initialize_model(params, nomenclature=None):
         electric_utility_factor=uf,
     )
 
-    print(f"Electric energy stored just AFTER set_all(): {m['electric energy stored'].values} kWh")
 
     m = set_vehicle_properties_before_run(m, params)
 
-    print("share tolled roads BEFORE", m["share tolled roads"])
-
-    print(f"Electric energy stored just AFTER set_vehicle_properties_before_run(): {m['electric energy stored'].values} kWh")
-
     m.set_all()
-    print("share tolled roads AFTER", m["share tolled roads"])
-
-    print(f"Electric energy stored just AFTER set_all(): {m['electric energy stored'].values} kWh")
 
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
 
     if params["powertrain"] not in ["PHEV-d", "PHEV-p"]:
         m = set_vehicle_properties_after_run(m, params)
-    print(f"Electric energy stored just AFTER set_vehicle_properties_after_run(): {m['electric energy stored'].values} kWh")
 
     if "capacity" in m.energy_storage:
         m.override_battery_capacity()
-    # redimension_battery_and_range(m, params)
 
     errors = validate_output_data(data=m, request=params, nomenclature=nomenclature)
 
@@ -579,35 +567,37 @@ def initialize_model(params, nomenclature=None):
         indicator = params["indicator"]
 
     electricity_mix = None
+
+    technology_indices = {
+        "hydro": 0,
+        "nuclear": 1,
+        "gas": 2,
+        "solar": 3,
+        "wind": 4,
+        "biomass": 5,
+        "coal": 6,
+        "oil": 7,
+        "geothermal": 8,
+        "waste": 9,
+        "biogas_ccs": 10,
+        "biomass_ccs": 11,
+        "coal_ccs": 12,
+        "gas_ccs": 13,
+        "wood_ccs": 14,
+        "hydro_alpine": 15,
+        "gas_ccgt": 16,
+        "gas_chp": 17,
+        "solar_thermal": 18,
+        "wind_offshore": 19,
+        "lignite": 20,
+    }
+
     if "electricity" in params:
         if params["electricity"] != "grid":
-            technology_indices = {
-                "hydro": 0,
-                "nuclear": 1,
-                "gas": 2,
-                "solar": 3,
-                "wind": 4,
-                "biomass": 5,
-                "coal": 6,
-                "oil": 7,
-                "geothermal": 8,
-                "waste": 9,
-                "biogas_ccs": 10,
-                "biomass_ccs": 11,
-                "coal_ccs": 12,
-                "gas_ccs": 13,
-                "wood_ccs": 14,
-                "hydro_alpine": 15,
-                "gas_ccgt": 16,
-                "gas_chp": 17,
-                "solar_thermal": 18,
-                "wind_offshore": 19,
-                "lignite": 20,
-            }
-
-            electricity_mix = np.zeros(21)
-            electricity_mix[technology_indices[params["electricity"]]] = 1
-            electricity_mix = {"custom electricity mix": [electricity_mix]}
+            if params["electricity"] in technology_indices:
+                electricity_mix = np.zeros(21)
+                electricity_mix[technology_indices[params["electricity"]]] = 1
+                electricity_mix = {"custom electricity mix": [electricity_mix]}
 
     m.inventory = inventory(
         m,
