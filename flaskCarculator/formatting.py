@@ -237,7 +237,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                     )] = float(electricity_consumption * blended_elec_ef) * factor
 
                     # Fuel part
-                    fuel_value = _get_number(fuel_emission_factor, powertrain, "climate change")
+                    fuel_value = _get_number(BAFU_EMISSSION_FACTORS, "PHEV-c-d" if powertrain == "PHEV-d" else "PHEV-c-p", "climate change")
                     if fuel_value is None:
                         raise KeyError(f"Can't find 'climate change' EF for {powertrain} fuel in BAFU_EMISSSION_FACTORS.")
                     lca_results.loc[dict(
