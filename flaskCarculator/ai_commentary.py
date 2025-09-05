@@ -14,8 +14,8 @@ LANG_NAMES = {"en":"English","fr":"French","de":"German","it":"Italian"}
 
 # Put near the top
 DETAIL_CONFIG = {
-    "compact":   {"word_limit": 180, "max_tokens": 700,  "include_appendix": False},
-    "standard":  {"word_limit": 300, "max_tokens": 1000, "include_appendix": True},
+    "compact":   {"word_limit": 140, "max_tokens": 320,  "include_appendix": False},
+    "standard":  {"word_limit": 320, "max_tokens": 900,  "include_appendix": True},
     "deep":      {"word_limit": 600, "max_tokens": 1600, "include_appendix": True},
     "narrative": {"word_limit": 600, "max_tokens": 1600, "include_appendix": False},
 }
@@ -131,25 +131,26 @@ Vehicles (id → {{indicator, total, total_2dp,
 {cost_policy}
 
 Rules:
-- Internally sort by TOTAL (ascending = best) to orient your narrative. DO NOT output a ranking list.
+- Internally sort by TOTAL (ascending = best). DO NOT output a ranking list.
 - Treat vehicles with |Δ total| < {close_band} as "effectively similar".
 - When referencing stages in attrs["top_stages"]:
-    - If you mention "road", explicitly call it "road infrastructure construction & upkeep (embodied)".
-    - "energy chain" must be described as the upstream energy supply chain (production + delivery) for the relevant carrier.
-- When assessing carrying capacity, use feats["available_payload_kg"] (gross mass − curb mass) if present. Ignore any payload utilization ratio fields.
+    - If you mention "road", call it "road infrastructure construction & upkeep (embodied)".
+    - "energy chain" = upstream energy supply chain (production + delivery) for the carrier.
+- Payload policy: If feats["available_payload_kg"] is present, use it to discuss carrying capacity (e.g., which vehicle offers more payload and by how much). Prefer payload over capacity utilization for the narrative.
+- Do **not** discuss “capacity utilization” in the summary unless it is explicitly central to explaining a difference.
 
 - Summary (≤{word_limit} words):
-    - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per FU).
-    - Add ONE concise cost sentence (CHF per {fu_code}).
-    - Interpret stage drivers ("energy chain", "road infrastructure construction & upkeep (embodied)").
-    - Discuss tank-to-wheel energy (MJ per {fu_code}) where relevant.
-    - Explain capacity utilization as a logistics load factor (%, no decimals).
+    - Open with BEST and WORST by total GHG (use total_2dp, kgCO2-eq per {fu_code}).
+    - One **cost** sentence: lowest vs highest totals (CHF per {fu_code}) and dominant cost driver(s).
+    - Interpret stage drivers (“energy chain”, “road infrastructure construction & upkeep (embodied)”).
+    - Report **tank-to-wheel energy** in MJ per {fu_code} when available and relate it to results.
+    - Mention **available payload** when it explains differences (state kg deltas).
     - Note mixed functional units if present; avoid cross-unit comparisons.
 
 Output policy:
-- Output **only** a JSON object with exactly these two keys: "summary" and "capacity_and_range".
-- If a value is unknown, use null. Never write placeholders like number|null or "...".
-- Keep all numbers as numbers (no strings for numbers).
+- Output only JSON with keys: "summary" and "capacity_and_range".
+- If a value is unknown, use null. No placeholders like number|null or "...".
+- Numbers must be numbers (not strings).
 
 Return ONLY this JSON:
 {{
@@ -159,6 +160,15 @@ Return ONLY this JSON:
   ]
 }}
 """
+
+PROMPT_TMPL_STANDARD = PROMPT_TMPL_COMPACT.replace(
+    "Summary (≤{word_limit} words):",
+    "Summary (≤{word_limit} words):"
+).replace(
+    'Output policy:\n- Output only JSON with keys: "summary" and "capacity_and_range".',
+    'Output policy:\n- Output only JSON with keys: "summary", "capacity_and_range", and (optionally) "appendix".'
+)
+
 
 def _is_finite_number(x) -> bool:
     try:
@@ -307,10 +317,10 @@ def _filter_essentials(veh_payload: dict) -> dict:
         "func_unit",
     }
     KEEP_FEATS = {
-        "capacity_utilization",
-        "capacity_utilization_label",
         "energy_intensity_kwh_per_km",
         "ttw_energy_mj_per_fu",
+        "available_payload_kg",   # ensure it passes through
+        # (capacity fields intentionally omitted from feats; they still exist in attrs if present)
     }
     slim = {}
     for vid, d in veh_payload.items():
@@ -358,18 +368,6 @@ def ai_compare_across_vehicles_swisscargo(
     cfg = DETAIL_CONFIG.get(detail, DETAIL_CONFIG["compact"]).copy()
     lang = _pick_lang(language)
 
-    # Dynamically clamp tokens if little time remains
-    # Aggressive clamping for speed
-    if api_budget <= 3.0:
-        cfg["max_tokens"] = 200
-        cfg["word_limit"] = 90
-    elif api_budget <= 5.0:
-        cfg["max_tokens"] = 260
-        cfg["word_limit"] = 110
-    else:
-        cfg["max_tokens"] = 320  # was 220
-        cfg["word_limit"] = 120
-
     system = (
         f"You are an LCA assistant. Respond in {LANG_NAMES[lang]}. "
         "Use only provided numbers. Output strict JSON. "
@@ -379,21 +377,23 @@ def ai_compare_across_vehicles_swisscargo(
 
     slim_payload = _filter_essentials(veh_payload)
     for vid, d in slim_payload.items():
-        # round totals to 2 dp; remove None entries
-        d["total"] = _round_or_none(d.get("total"), nd=2)
+        raw_total = d.get("total")
+        # Keep both: precise total and rounded 2dp for display
+        d["total"] = _round_or_none(raw_total, nd=6)
+        d["total_2dp"] = _round_or_none(raw_total, nd=2)
+
         d["attrs"] = {k: v for k, v in d.get("attrs", {}).items() if v not in (None, "", [], {})}
         d["feats"] = {k: v for k, v in d.get("feats", {}).items() if v not in (None, "", [], {})}
+
         if "cost" in d:
-            # keep only totals + top 2 components if present
             c = d["cost"]
             keep = {"currency": c.get("currency"), "total": c.get("total"), "per_fu": c.get("per_fu")}
             comps = c.get("components") or {}
-            # keep top 2 biggest components if you have shares
             if c.get("shares_pct"):
                 top2 = sorted(c["shares_pct"].items(), key=lambda it: it[1], reverse=True)[:2]
                 keep["components"] = {k: comps.get(k) for k, _ in top2 if k in comps}
             else:
-                keep["components"] = comps  # or prune by a fixed list
+                keep["components"] = comps
             d["cost"] = keep
 
     fu_code, fu_mixed = _resolve_fu_from_payload(slim_payload, fallback="vkm")
@@ -408,18 +408,20 @@ def ai_compare_across_vehicles_swisscargo(
         separators=(",", ":"),
         allow_nan=False  # hard fail if NaN/Inf slipped through
     )
-    appendix_clause = "" if not cfg.get("include_appendix") else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
+    # choose template based on detail
+    tmpl = PROMPT_TMPL_COMPACT if detail == "compact" else PROMPT_TMPL_STANDARD
 
-    include_glossary = api_budget >= 4.0
-    prompt = PROMPT_TMPL_COMPACT.format(
+    appendix_clause = "" if detail == "compact" else APPENDIX_JSON_CLAUSE.format(fu_code=fu_code)
+
+    prompt = tmpl.format(
         veh_payload=payload_str,
         close_band=0.02,
-        stage_glossary=STAGE_GLOSSARY.strip() if include_glossary else "",
-        capacity_utilization_note=CAPACITY_UTILIZATION_NOTE.strip() if include_glossary else "",
+        stage_glossary="",  # keep compact; short preamble = better JSON
+        capacity_utilization_note="",  # remove utilization guidance
         cost_policy=COST_POLICY.strip(),
         word_limit=cfg["word_limit"],
         fu_code=fu_code,
-        appendix_clause=""  # omit appendix under tight budgets
+        appendix_clause=appendix_clause
     ) + f"""
         Functional unit (FU): "{fu_label}" (code: {fu_code}).
         If units are mixed across vehicles, briefly note that and avoid cross-unit comparisons.
