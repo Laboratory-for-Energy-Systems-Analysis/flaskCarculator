@@ -3,8 +3,8 @@ import pandas as pd
 from pprint import pprint
 
 # Define the URL for the Flask endpoint
-url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
-# url = "http://127.0.0.1:5000/calculate-lca"
+# url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
+url = "http://127.0.0.1:5000/calculate-lca"
 
 results_list = []
 

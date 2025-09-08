@@ -12,7 +12,6 @@ from collections import OrderedDict
 from .ai_commentary import ai_compare_across_vehicles_swisscargo
 from .ai_extract import build_compare_payload_swisscargo
 
-
 main = Blueprint('main', __name__)
 
 @main.route("/")
@@ -105,7 +104,6 @@ def calculate_lca():
         "total cargo mass",
         "driving mass",
         "gross mass",
-
     ]
 
     cost_results_parameters = [
@@ -150,7 +148,13 @@ def calculate_lca():
         # --- compute results just like before ---
         if data.get("nomenclature") == "tcs":
             vehicle["results_ecoinvent"] = format_results_for_tcs(data=model, params=vehicle)
+            for k, v in vehicle["results_ecoinvent"].items():
+                if not np.isfinite(v):
+                    vehicle["results_ecoinvent"][k] = 0.0
             vehicle["results_bafu"] = format_results_for_tcs(data=model, params=vehicle, bafu=True)
+            for k, v in vehicle["results_bafu"].items():
+                if not np.isfinite(v):
+                    vehicle["results_bafu"][k] = 0.0
 
         elif data.get("nomenclature") == "swisscargo":
             vehicle["results"] = format_results_for_swisscargo(data=model, params=vehicle)
@@ -208,7 +212,7 @@ def calculate_lca():
         else:
             vehicle["results"] = serialize_xarray(model.results)
 
-        # harvest parameters (unchanged logic, but read from `model`)
+        # harvest parameters
         for p in default_vehicle_parameters:
             if p in model.array.parameter.values:
                 if p in ("fuel consumption", "electricity consumption"):
@@ -264,9 +268,6 @@ def calculate_lca():
             data["ai_comparison_note"] = (
                 f"Skipped AI (remaining={remaining:.2f}s, needs ≥{MIN_AI_BUDGET + RESPONSE_BUFFER:.1f}s)."
             )
-
-
-
 
     return Response(
         json.dumps(data, indent=2, sort_keys=False),  # Serialize using the ordered structure
