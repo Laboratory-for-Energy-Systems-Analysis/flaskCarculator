@@ -66,19 +66,20 @@ def check_results(results):
 
 
 # Load the data from the CSV file
-fp = "feed_2025_02_10_example.csv"
-df = pd.read_csv(fp, sep=";", encoding="latin-1", low_memory=False)
+# fp = "feed_2025_02_10_example.csv"
+fp = "tbl_car_draft(1).csv"
+#fp = "tbl_car_draft.csv"
+df = pd.read_csv(fp, sep=";", low_memory=False, encoding="latin1")
 
 # Loop through each row in the DataFrame
-for index, row in df.iterrows():
+for index, row in df[:15].iterrows():
     # Shape the JSON payload dynamically based on the DataFrame row
     data = {
         "nomenclature": "tcs",
         "country_code": row.get("country_code", "CH"),  # Default to "CH" if not present
     }
 
-    vehicle_data = [
-            {
+    vehicle = {
                 "id": row["FahrzeugId"],
                 "vehicle_type": "car",
                 "tsa": row["MotorartcodeCH"],
@@ -87,20 +88,57 @@ for index, row in df.iterrows():
                 "leer": row["LeergewichtKg"],
                 "nutz": row["ZuladungKg"],
                 "gesamt": row["GesamtgewichtKg"],
-                "kw": row.get("LeistungVerbrennerKw", 0),
-                "kw_sl": row.get("LeistungKw", 0),
-                "tank": row.get("TankgroessseKraftstoffart", 0),
-                "ver": row.get("WltpKombiniertKraftstoffart", 0),
-                "bat_cap": row.get("AntriebsbatterieKapazitaetBruttoKwh", 0),
-                "bat_typ": row.get("AntriebsbatterieArt", ""),
-                "bat_km_WLTP": row.get("ReichweiteWltpEMotor", 0),
-
-                "ver_strom": row.get("WltpKombiniertEfahrzeugeKwh", 0),
-                "direct_co2": row.get("WltpCo2KombiniertG", 0),
-                "fuel_co2": row.get("CO2Herstellung", 0),
+                #"kw": row.get("LeistungVerbrennerKw", 0),
+                #"kw_sl": row.get("LeistungKw", 0),
+                #"tank": row.get("TankgroessseKraftstoffart", 0),
+                #"ver": row.get("WltpKombiniertKraftstoffart", 0),
+                #"bat_cap": row.get("AntriebsbatterieKapazitaetBruttoKwh", 0),
+                #"bat_typ": row.get("AntriebsbatterieArt", None),
+                #"bat_km_WLTP": row.get("ReichweiteWltpEMotor", None),
+                #"ver_strom": row.get("WltpKombiniertEfahrzeugeKwh", 0),
+                #"direct_co2": row.get("WltpCo2KombiniertG", 0),
+                #"fuel_co2": row.get("CO2Herstellung", 0),
 
             }
-        ]
+
+    if pd.notna(row.get("LeistungVerbrennerKw")):
+        vehicle["kw"] = row["LeistungVerbrennerKw"]
+
+    if pd.notna(row.get("LeistungKw")):
+        vehicle["kw_sl"] = row["LeistungKw"]
+
+    if pd.notna(row.get("TankgroessseKraftstoffart")):
+        vehicle["tank"] = row["TankgroessseKraftstoffart"]
+
+    if pd.notna(row.get("WltpKombiniertKraftstoffart")):
+        vehicle["ver"] = row["WltpKombiniertKraftstoffart"]
+
+    if pd.notna(row.get("AntriebsbatterieKapazitaetBruttoKwh")):
+        if float(row["AntriebsbatterieKapazitaetBruttoKwh"]) > 0:
+            vehicle["bat_cap"] = row["AntriebsbatterieKapazitaetBruttoKwh"]
+
+    if pd.notna(row.get("AntriebsbatterieArt")):
+        vehicle["bat_typ"] = row["AntriebsbatterieArt"]
+
+    if pd.notna(row.get("ReichweiteWltpEMotor")):
+        if float(row["ReichweiteWltpEMotor"]) > 0:
+            vehicle["bat_km_WLTP"] = row["ReichweiteWltpEMotor"]
+
+    if pd.notna(row.get("WltpKombiniertEfahrzeugeKwh")):
+        if float(row["WltpKombiniertEfahrzeugeKwh"]) > 0:
+            vehicle["ver_strom"] = row["WltpKombiniertEfahrzeugeKwh"]
+
+    if pd.notna(row.get("WltpCo2KombiniertG")):
+        if float(row["WltpCo2KombiniertG"]) > 0:
+            vehicle["direct_co2"] = row["WltpCo2KombiniertG"]
+
+    if pd.notna(row.get("CO2Herstellung")):
+        if float(row["CO2Herstellung"]) > 0:
+            vehicle["fuel_co2"] = row["CO2Herstellung"]
+
+    vehicle_data = [
+        vehicle,
+    ]
 
     # remove NaN values
     vehicle_data = [dict((k, v) for k, v in d.items() if pd.notna(v)) for d in vehicle_data]

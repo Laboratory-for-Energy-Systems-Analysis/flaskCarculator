@@ -185,7 +185,7 @@ def validate_input_data(data: dict) -> list:
         if "range" in vehicle and not isinstance(vehicle["range"], (int, float)):
             errors.append(f"Vehicle {v} has invalid range value: {vehicle['range']} (must be a number)")
         elif "range" in vehicle and vehicle["range"] <= 0:
-            errors.append(f"Vehicle {v}: range must be greater than 0.")
+            errors.append(f"Vehicle {v}: range must be greater than 0. Currently: {vehicle['range']} from {vehicle}.")
 
         # Check if 'TtW energy' (energy use, in kj) is a valid number
         if "TtW energy" in vehicle and not isinstance(vehicle["TtW energy"], (int, float)):
@@ -279,14 +279,14 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
             if vehicle["tsa"] in TCS_POWERTRAIN:
                 new_vehicle["powertrain"] = TCS_POWERTRAIN[vehicle["tsa"]]
 
-            if "bat_km_WLTP" in vehicle:
+            if vehicle.get("bat_km_WLTP", 0) > 0:
                 if TCS_POWERTRAIN[vehicle["tsa"]] not in ["BEV", "FCEV"]:
                     if TCS_POWERTRAIN.get(vehicle["tsa"]) in ["PHEV-p", "PHEV-d"]:
                         real_uf, wltp_uf = calculate_utility_factor(vehicle["bat_km_WLTP"])
                         new_vehicle["electric utility factor"] = real_uf / 100
                         new_vehicle["electric utility factor (wltp)"] = wltp_uf / 100
                     else:
-                        errors.append(f"Vehicle {vehicle['id']} has a battery range but is not one of BEV, .")
+                        errors.append(f"Vehicle {vehicle['id']} with powertrain {TCS_POWERTRAIN.get(vehicle['tsa'])} has a battery range of {vehicle['bat_km_WLTP']} but is not one of BEV, .")
 
 
         new_vehicle["TtW energy"] = 0
@@ -297,6 +297,7 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
                     new_vehicle["fuel consumption"] = vehicle["ver"] * 11123 # converts kg to liters at ambient pressure
                 else:
                     new_vehicle["fuel consumption"] = vehicle["ver"]
+
                 new_vehicle["TtW energy"] += int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
             else:
                 new_vehicle["fuel consumption"] = vehicle["ver"] * ((1 - new_vehicle["electric utility factor"]) / (1 - new_vehicle["electric utility factor (wltp)"]))

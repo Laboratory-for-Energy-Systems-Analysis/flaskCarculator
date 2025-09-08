@@ -13,7 +13,6 @@ setup(
         'carculator_two_wheeler',
         'carculator_bus',
         'carculator_utils',
-
     ],
     entry_points={
         'console_scripts': [
