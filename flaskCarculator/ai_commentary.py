@@ -151,11 +151,18 @@ def _top_cost_drivers(components: dict, n=2):
 
 def _build_facts_table(slim_payload: dict, fu_code: str):
     def r2(x):
-        try: return round(float(x), 2)
-        except Exception: return None
+        try:
+            y = float(x)
+            return round(y, 2) if math.isfinite(y) else None
+        except Exception:
+            return None
+
     def r0(x):
-        try: return int(round(float(x)))
-        except Exception: return None
+        try:
+            y = float(x)
+            return int(round(y)) if math.isfinite(y) else None
+        except Exception:
+            return None
 
     name_map = {vid: f"Vehicle {i}" for i, vid in enumerate(slim_payload.keys(), start=1)}
 
@@ -392,6 +399,7 @@ def ai_compare_across_vehicles_swisscargo(
     # Keep payload compact; avoid pretty printing and ASCII escaping
 
     facts = _build_facts_table(slim_payload, fu_code)
+    facts = _sanitize_numbers(facts)
     facts_str = json.dumps(facts, separators=(",", ":"), allow_nan=False)
 
     sanitized_payload = _sanitize_numbers(slim_payload)
