@@ -97,9 +97,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
     """
 
     lca_results = data.bafu_results
-
     electricity_param = params.get("electricity", "grid")
-    has_average_h2 = params.get("hydrogen", "hydrogen - electrolysis - PEM") == "hydrogen - electrolysis - PEM"
 
     # --- Helpers -------------------------------------------------------------
     def _get_number(d, key, subkey="climate change"):
@@ -204,8 +202,13 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
                     emission_factor = BAFU_EMISSSION_FACTORS[powertrain]
 
                     # Special case: non-average hydrogen for FCEV
-                    if has_average_h2 is False and powertrain == "FCEV":
-                        emission_factor = {"climate change": 11.4}
+                    if powertrain == "FCEV":
+                        emission_factor = {
+                            "hydrogen - smr - natural gas": {"climate change": 11.4},
+                            "hydrogen - electrolysis - PEM": {"climate change": 5.94},
+                            "hydrogen - electrolysis - PEM (renewables)": {"climate change": 1.58},
+                        }
+
 
                     for impact_cat, value in emission_factor.items():
                         if impact_cat == "climate change":
