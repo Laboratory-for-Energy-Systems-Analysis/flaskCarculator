@@ -27,9 +27,10 @@ data = {
              "electricity consumption": 145,
              "battery lifetime replacement": 0,
              "func_unit": "tkm",
-            "purchase_year": 2023,
-            "resale_year": 2028,
+             "purchase_year": 2023,
+             "resale_year": 2028,
              "canton": "Bern",
+             "interest rate": 0.0
         },
         {
              "id": "BEEV002",
@@ -119,3 +120,4 @@ if response.status_code == 200:
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
     print("Error:", response.text)
+
