@@ -115,7 +115,6 @@ if response.status_code == 200:
     #array = xr.DataArray.from_dict(result["vehicles"][0]["results"])
     #print(array.coords["impact"].values)
     pprint(result)
-    #print(array.sel(impact_category="climate change"))
 
 else:
     print(f"Failed to get LCA results. Status code: {response.status_code}")
