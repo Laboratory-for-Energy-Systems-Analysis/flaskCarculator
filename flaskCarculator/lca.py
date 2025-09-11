@@ -600,6 +600,15 @@ def initialize_model(params, nomenclature=None):
                 electricity_mix[technology_indices[params["electricity"]]] = 1
                 electricity_mix = {"custom electricity mix": [electricity_mix]}
 
+    if "hydrogen" in params:
+        if params["hydrogen"] == "hydrogen - electrolysis - PEM (renewables)":
+            m.fuel_blend["hydrogen"] = {
+                "primary": {"type": "hydrogen - electrolysis - PEM", "share": [1.00]},
+            }
+            electricity_mix = np.zeros(21)
+            electricity_mix[0] = 1
+            electricity_mix = {"custom electricity mix": [electricity_mix]}
+
     m.inventory = inventory(
         m,
         method=method,
