@@ -66,7 +66,8 @@ Rules (follow exactly):
 - Battery & masses: mention battery_energy_kwh, curb/driving/gross mass, mass_fraction_curb_vs_gross, and power_to_mass_kw_per_t when they help explain differences.
 - Stage drivers: use attrs["top_stages"] and any stage_shares_pct if present; tie them to observed differences.
 - Never write "null" or "unknown" in the summary; omit that sentence instead.
-- 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers; (6) unit caveats if mixed FUs.
+- 4–6 short paragraphs covering: (1) GHG magnitudes (best/worst with total_2dp, kgCO2-eq per {fu_code}); (2) costs with drivers (CHF per {fu_code}); (3) energy & efficiency (MJ per {fu_code}, energy_intensity_kwh_per_km, power_to_mass); (4) payload & battery/masses (available payload, battery size, curb/gross); (5) stage drivers.
+- Range sentence (MANDATORY): Compare the longest- and shortest-range vehicles using display values (target_range_km_int, in km). Mention each vehicle’s range at least once.
 
 Coverage policy:
 - There are {veh_count} vehicles. Mention every vehicle at least once by label.
@@ -149,7 +150,6 @@ def _top_cost_drivers(components: dict, n=2):
 
 
 def _build_facts_table(slim_payload: dict, fu_code: str):
-    """Return per-vehicle facts (raw + display-rounded), a name map, and orientation."""
     def r2(x):
         try: return round(float(x), 2)
         except Exception: return None
@@ -157,7 +157,6 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
         try: return int(round(float(x)))
         except Exception: return None
 
-    # Stable id -> "Vehicle N" mapping (enumeration keeps dict order)
     name_map = {vid: f"Vehicle {i}" for i, vid in enumerate(slim_payload.keys(), start=1)}
 
     rows = []
@@ -166,29 +165,28 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
         attrs = d.get("attrs") or {}
         cost  = d.get("cost")  or {}
 
-        # raw values (kept as before)
         raw_total_2dp = d.get("total_2dp")
         raw_ttw_mj    = feats.get("ttw_energy_mj_per_fu")
         raw_ei_kwhkm  = feats.get("energy_intensity_kwh_per_km")
         raw_payload   = feats.get("available_payload_kg")
         raw_batt_kwh  = feats.get("battery_energy_kwh")
         raw_cost_fu   = cost.get("total")
+        raw_range_km  = attrs.get("target_range_km")  # ← NEW
 
-        # display-rounded values (NEW)
         disp = {
-            f"total_kgco2e_per_{fu_code}": raw_total_2dp,                 # already 2dp upstream
-            f"ttw_mj_per_{fu_code}_2dp": r2(raw_ttw_mj),                  # 2 decimals
-            "energy_intensity_kwh_per_km_2dp": r2(raw_ei_kwhkm),          # 2 decimals
-            "available_payload_kg_int": r0(raw_payload),                  # integer
-            "battery_energy_kwh_int": r0(raw_batt_kwh),                   # integer
-            f"cost_chf_per_{fu_code}_2dp": r2(raw_cost_fu),               # 2 decimals
-            "cost_total_chf_int": r0(raw_cost_fu),                        # integer (if you ever say "total cost")
+            f"total_kgco2e_per_{fu_code}": raw_total_2dp,
+            f"ttw_mj_per_{fu_code}_2dp": r2(raw_ttw_mj),
+            "energy_intensity_kwh_per_km_2dp": r2(raw_ei_kwhkm),
+            "available_payload_kg_int": r0(raw_payload),
+            "battery_energy_kwh_int": r0(raw_batt_kwh),
+            f"cost_chf_per_{fu_code}_2dp": r2(raw_cost_fu),
+            "cost_total_chf_int": r0(raw_cost_fu),
+            "target_range_km_int": r0(raw_range_km),
         }
 
         rows.append({
             "id": vid,
-            "label": name_map[vid],                   # NEW: "Vehicle N"
-            # raw facts (unchanged keys)
+            "label": name_map[vid],
             f"total_kgco2e_per_{fu_code}": raw_total_2dp,
             f"ttw_mj_per_{fu_code}": raw_ttw_mj,
             "energy_intensity_kwh_per_km": raw_ei_kwhkm,
@@ -205,9 +203,10 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
             "powertrain": attrs.get("powertrain"),
             "size": attrs.get("size"),
             "top_stages": attrs.get("top_stages"),
-            # display (rounded) facts (NEW keys with *_2dp / *_int)
+            "target_range_km": raw_range_km,
             "display": disp,
         })
+
 
     # Orientation by total (use labels too)
     key = f"total_kgco2e_per_{fu_code}"
@@ -226,8 +225,6 @@ def _build_facts_table(slim_payload: dict, fu_code: str):
         }
 
     return {"per_vehicle": rows, "orientation": orient, "name_map": name_map}
-
-
 
 
 _OPENAI_CLIENT = None
