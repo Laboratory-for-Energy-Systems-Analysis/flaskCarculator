@@ -497,6 +497,7 @@ def initialize_model(params, nomenclature=None):
 
     # build fuel blends
     fuel_blends = {}
+    electricity_mix = None
     for fuel in ["diesel", "petrol", "methane", "hydrogen"]:
         if fuel in params:
             fuel_blends[fuel] = {
@@ -507,6 +508,20 @@ def initialize_model(params, nomenclature=None):
                     ],
                 }
             }
+
+            if fuel == "hydrogen":
+                if params[fuel] == "hydrogen - electrolysis - PEM (renewables)":
+                    electricity_mix = np.zeros(21)
+                    electricity_mix[0] = 1
+                    electricity_mix = {"custom electricity mix": [electricity_mix]}
+                    fuel_blends[fuel] = {
+                        "primary": {
+                            "type": "hydrogen - electrolysis - PEM",
+                            "share": [
+                                1.0,
+                            ],
+                        }
+                    }
 
     cycle = None
     if params.get("cycle", None):
@@ -599,15 +614,6 @@ def initialize_model(params, nomenclature=None):
                 electricity_mix = np.zeros(21)
                 electricity_mix[technology_indices[params["electricity"]]] = 1
                 electricity_mix = {"custom electricity mix": [electricity_mix]}
-
-    if "hydrogen" in params:
-        if params["hydrogen"] == "hydrogen - electrolysis - PEM (renewables)":
-            m.fuel_blend["hydrogen"] = {
-                "primary": {"type": "hydrogen - electrolysis - PEM", "share": [1.00]},
-            }
-            electricity_mix = np.zeros(21)
-            electricity_mix[0] = 1
-            electricity_mix = {"custom electricity mix": [electricity_mix]}
 
     m.inventory = inventory(
         m,
