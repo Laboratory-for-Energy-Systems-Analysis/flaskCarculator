@@ -203,11 +203,12 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
                     # Special case: non-average hydrogen for FCEV
                     if powertrain == "FCEV":
-                        emission_factor = {
+                        hydrogen_types = {
                             "hydrogen - smr - natural gas": {"climate change": 11.4},
                             "hydrogen - electrolysis - PEM": {"climate change": 5.94},
                             "hydrogen - electrolysis - PEM (renewables)": {"climate change": 1.58},
                         }
+                        emission_factor = hydrogen_types[params["hydrogen"]]
 
 
                     for impact_cat, value in emission_factor.items():
