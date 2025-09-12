@@ -213,8 +213,7 @@ def calculate_lca():
             vehicle["results"] = serialize_xarray(model.results)
 
         # harvest parameters
-        # for p in default_vehicle_parameters:
-        for p in model.array.parameter.values:
+        for p in default_vehicle_parameters:
             if p in model.array.parameter.values:
                 if p in ("fuel consumption", "electricity consumption"):
                     val = model.array.sel(parameter=p).mean().values.item() * 100

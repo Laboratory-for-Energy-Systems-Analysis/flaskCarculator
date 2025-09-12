@@ -72,6 +72,7 @@ data = {
 #             "resale_year": 2028,
 #             "canton": "Zürich",
 #         },
+
 # {
 #             "id": "FCEV001",
 #             "vehicle_type": "truck",

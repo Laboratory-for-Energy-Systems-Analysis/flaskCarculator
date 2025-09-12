@@ -423,7 +423,6 @@ def initialize_model(params, nomenclature=None):
             },
         }
 
-
     if params.get("battery technology", None):
         if energy_storage is None:
             energy_storage = {}
