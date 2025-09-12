@@ -107,16 +107,23 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
             return float(d[key][subkey])
         return None
 
-    def _electricity_grid_ef():
+    def _electricity_grid_ef(electricity_type: str) -> float:
         """
         Try reasonable keys that should contain an electricity grid EF per kWh.
         Adjust if your keys differ.
         """
-        for k in ("BEV", "PHEV-e", "electricity-grid", "grid-electricity"):
-            v = _get_number(BAFU_EMISSSION_FACTORS, k)
-            if v is not None:
-                return v
-        raise KeyError("Can't find grid electricity EF in BAFU_EMISSSION_FACTORS.")
+
+        if electricity_type == "grid":
+            for k in ("BEV", "PHEV-e", "electricity-grid", "grid-electricity"):
+                v = _get_number(BAFU_EMISSSION_FACTORS, k)
+                if v is not None:
+                    return v
+            raise KeyError("Can't find grid electricity EF in BAFU_EMISSSION_FACTORS.")
+        elif electricity_type == "EU grid":
+            v = 0.635  # kg CO2e/kWh for EU average grid (UVEK 2022)
+            return v
+        else:
+            raise ValueError(f"Unknown electricity type '{electricity_type}'. Supported: 'grid', 'EU grid'.")
 
     def _electricity_pv_ef():
         """
@@ -167,10 +174,10 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
         # If nothing matched, give up -> None (caller will treat as pure grid)
         return None
 
-    def _blended_electricity_ef():
+    def _blended_electricity_ef(electricity_type: str) -> float:
         """Return the electricity EF to use (kg CO2e/kWh) after blending, if needed."""
         pv_grid = _parse_pv_grid_mix(electricity_param)
-        grid_ef = _electricity_grid_ef()
+        grid_ef = _electricity_grid_ef(electricity_type)
         if pv_grid is None:  # "grid" or any other legacy value -> treat as pure grid
             return grid_ef
         pv_share, grid_share = pv_grid
@@ -178,7 +185,7 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
         return (pv_share * pv_ef) + (grid_share * grid_ef)
     # ------------------------------------------------------------------------
 
-    blended_elec_ef = _blended_electricity_ef()
+    blended_elec_ef = _blended_electricity_ef(electricity_type=params.get("electricity"))
 
     factor = 1
     if "func_unit" in params and params["func_unit"] == "tkm":
