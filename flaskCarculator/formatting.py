@@ -185,7 +185,10 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
         return (pv_share * pv_ef) + (grid_share * grid_ef)
     # ------------------------------------------------------------------------
 
-    blended_elec_ef = _blended_electricity_ef(electricity_type=params.get("electricity"))
+    if params.get("electricity consumption", 0) > 0:
+        blended_elec_ef = _blended_electricity_ef(electricity_type=params.get("electricity"))
+    else:
+        blended_elec_ef = 0.0
 
     factor = 1
     if "func_unit" in params and params["func_unit"] == "tkm":
