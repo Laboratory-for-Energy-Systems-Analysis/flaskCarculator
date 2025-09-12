@@ -169,6 +169,11 @@ def set_vehicle_properties_before_run(model, params):
             dict(parameter="depot charger capacity charger per kW-year")
         ] = params["depot charger capacity charger per kW-year"]
 
+        if "trucks per depot charger" in params:
+            model.array.loc[
+                dict(parameter="trucks per depot charger")
+            ] = params["trucks per depot charger"]
+
     return model
 
 
