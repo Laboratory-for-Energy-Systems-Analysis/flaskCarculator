@@ -214,7 +214,7 @@ def calculate_lca():
 
         # harvest parameters
         # for p in default_vehicle_parameters:
-        for p in model.inventory.parameters.values:
+        for p in model.array.parameters.values:
             if p in model.array.parameter.values:
                 if p in ("fuel consumption", "electricity consumption"):
                     val = model.array.sel(parameter=p).mean().values.item() * 100
