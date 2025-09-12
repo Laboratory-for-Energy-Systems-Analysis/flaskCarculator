@@ -143,6 +143,31 @@ def set_vehicle_properties_before_run(model, params):
             "residual value share"
         ]
 
+    if "depot charger lifetime" in params:
+        model.array.loc[dict(parameter="depot charger lifetime")] = params[
+            "depot charger lifetime"
+        ]
+
+    if "depot charger capex per kW" in params:
+        model.array.loc[dict(parameter="depot charger capex per kW")] = params[
+            "depot charger capex per kW"
+        ]
+
+    if "depot charger installation per kW" in params:
+        model.array.loc[dict(parameter="depot charger installation per kW")] = params[
+            "depot charger installation per kW"
+        ]
+
+    if "depot charger connection per kW" in params:
+        model.array.loc[dict(parameter="depot charger connection per kW")] = params[
+            "depot charger connection per kW"
+        ]
+
+    if "depot charger capacity charger per kW-year" in params:
+        model.array.loc[
+            dict(parameter="depot charger capacity charger per kW-year")
+        ] = params["depot charger capacity charger per kW-year"]
+
     return model
 
 
