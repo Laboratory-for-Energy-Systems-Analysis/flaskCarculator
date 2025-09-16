@@ -34,7 +34,6 @@ data = {
               "interest rate": 0.10,
                "electricity": "grid"
          },
-
          # {
          #      "id": "BEEV002",
          #      "vehicle_type": "truck",
