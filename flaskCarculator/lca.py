@@ -260,14 +260,14 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="cargo mass")] = params["cargo mass"]
         model.array.loc[dict(parameter="total cargo mass")] = params["cargo mass"]
 
-    if "battery lifetime replacement" in params:
+    if "battery lifetime replacements" in params:
         model.array.loc[dict(parameter="battery lifetime replacements")] = params[
-            "battery lifetime replacement"
+            "battery lifetime replacements"
         ]
 
-    if "fuel cell lifetime replacement" in params:
+    if "fuel cell lifetime replacements" in params:
         model.array.loc[dict(parameter="fuel cell lifetime replacements")] = params[
-            "fuel cell lifetime replacement"
+            "fuel cell lifetime replacements"
         ]
 
     return model

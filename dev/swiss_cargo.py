@@ -26,7 +26,7 @@ data = {
               "lifetime kilometers": 710000.0,
               "kilometers per year": 107000.0,
               "electricity consumption": 125,
-              "battery lifetime replacement": 0,
+              "battery lifetime replacement": 10,
               "func_unit": "vkm",
               "purchase_year": 2023,
               "resale_year": 2028,
