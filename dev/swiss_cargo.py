@@ -22,7 +22,7 @@ data = {
               "powertrain": "BEV",
               "power": 400,
               "battery technology": "NMC-811",
-              "electric energy stored": 100.0,
+              "electric energy stored": 624.0,
               "lifetime kilometers": 710000.0,
               "kilometers per year": 107000.0,
               "electricity consumption": 125,
@@ -34,6 +34,7 @@ data = {
               "interest rate": 0.10,
                "electricity": "grid"
          },
+
          # {
          #      "id": "BEEV002",
          #      "vehicle_type": "truck",
