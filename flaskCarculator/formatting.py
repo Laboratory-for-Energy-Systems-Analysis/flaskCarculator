@@ -176,16 +176,27 @@ def format_results_for_swisscargo(data: xr.DataArray, params: dict) -> list:
 
     def _blended_electricity_ef(electricity_type: str) -> float:
         """Return the electricity EF to use (kg CO2e/kWh) after blending, if needed."""
-        pv_grid = _parse_pv_grid_mix(electricity_param)
-        grid_ef = _electricity_grid_ef(electricity_type)
-        if pv_grid is None:  # "grid" or any other legacy value -> treat as pure grid
-            return grid_ef
-        pv_share, grid_share = pv_grid
-        pv_ef = _electricity_pv_ef()
-        return (pv_share * pv_ef) + (grid_share * grid_ef)
+        # 1) Check if it's a PV/grid mix like "50_own_50_grid"
+        pv_grid = _parse_pv_grid_mix(electricity_type)
+        if pv_grid is not None:
+            pv_share, grid_share = pv_grid
+            pv_ef = _electricity_pv_ef()
+
+            # If you want to allow mixes that explicitly mention EU grid, keep this heuristic;
+            # otherwise just use "grid" here unconditionally.
+            grid_baseline = "EU grid" if "eu" in electricity_type.lower() else "grid"
+            grid_ef = _electricity_grid_ef(grid_baseline)
+
+            return (pv_share * pv_ef) + (grid_share * grid_ef)
+
+        # 2) Not a mix -> treat as legacy single type ("grid" or "EU grid")
+        return _electricity_grid_ef(electricity_type)
     # ------------------------------------------------------------------------
 
-    blended_elec_ef = _blended_electricity_ef(electricity_type=params.get("electricity"))
+    if params.get("electricity consumption", 0) > 0:
+        blended_elec_ef = _blended_electricity_ef(electricity_type=params.get("electricity"))
+    else:
+        blended_elec_ef = 0.0
 
     factor = 1
     if "func_unit" in params and params["func_unit"] == "tkm":

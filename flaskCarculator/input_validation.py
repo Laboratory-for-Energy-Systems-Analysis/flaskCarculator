@@ -145,6 +145,12 @@ def validate_input_data(data: dict) -> list:
         "share tolled roads",
         "original class name",
         "residual value share",
+        "depot charger lifetime",
+        "depot charger capex per kW",
+        "depot charger installation per kW",
+        "depot charger connection per kW",
+        "depot charger capacity charger per kW-year",
+        "lifetime_years"
     ]
 
     errors = []

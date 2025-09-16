@@ -103,6 +103,7 @@ def set_vehicle_properties_before_run(model, params):
             params["fuel tank volume"] * fuel_density
         )
 
+
     if "purchase cost" in params:
         model.array.loc[dict(parameter="purchase cost")] = params["purchase cost"]
 
@@ -167,6 +168,11 @@ def set_vehicle_properties_before_run(model, params):
         model.array.loc[
             dict(parameter="depot charger capacity charger per kW-year")
         ] = params["depot charger capacity charger per kW-year"]
+
+        if "trucks per depot charger" in params:
+            model.array.loc[
+                dict(parameter="trucks per depot charger")
+            ] = params["trucks per depot charger"]
 
     return model
 
