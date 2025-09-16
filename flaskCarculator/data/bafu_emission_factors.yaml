@@ -4,13 +4,13 @@
 
 # per kWh
 BEV:
-  climate change: 0.110
+  climate change: 0.111
   total: 9.14
   "energy resources: non-renewable": 3.8 # 41.6% non-renewable, including nuclear
   "energy resources: renewable": 5.34
 
 PHEV-e:
-  climate change: 0.110
+  climate change: 0.111
   total: 9.14
   "energy resources: non-renewable": 3.8 # 41.6% non-renewable, including nuclear
   "energy resources: renewable": 5.34

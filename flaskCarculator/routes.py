@@ -175,9 +175,10 @@ def calculate_lca():
                     if "purchase cost" in vehicle and vehicle["purchase cost"] > 0:
                         continue
                     else:
-                        eu_to_ch_price_levels_difference = 1.12  # EUR prices are lower than CHF prices
+                        eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
                         vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
+                        model.array.loc[dict(parameter="purchase cost")] *= eu_to_ch_price_levels_difference
                         model.array.loc[dict(parameter="purchase cost")] *= eur_to_chf
 
                 if cost_type == "maintenance cost":
@@ -187,6 +188,7 @@ def calculate_lca():
                         eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
                         vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
+                        model.array.loc[dict(parameter="maintenance cost")] *= eu_to_ch_price_levels_difference
                         model.array.loc[dict(parameter="maintenance cost")] *= eur_to_chf
 
                 if cost_type == "insurance cost":
@@ -196,6 +198,7 @@ def calculate_lca():
                         eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
                         vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
+                        model.array.loc[dict(parameter="insurance cost")] *= eu_to_ch_price_levels_difference
                         model.array.loc[dict(parameter="insurance cost")] *= eur_to_chf
 
             lsva_costs = calculate_lsva_charge_period(vehicle)

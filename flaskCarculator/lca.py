@@ -171,6 +171,7 @@ def set_vehicle_properties_before_run(model, params):
     return model
 
 
+
 def set_vehicle_properties_after_run(model, params):
     """
     Sets various properties of the vehicle model based on the provided parameters.
