@@ -197,6 +197,12 @@ def calculate_lca():
                         model.array.loc[dict(parameter="insurance cost")] *= eu_to_ch_price_levels_difference
                         model.array.loc[dict(parameter="insurance cost")] *= eur_to_chf
 
+                if cost_type == "amortised component replacement cost":
+                    if vehicle["powertrain"] in ("BEV", "FCEV"):
+                        # we assume the components replacement cost is born by the next owner
+                        # hence we zero it out here
+                        vehicle["cost_results"][cost_type] = 0.0
+
             lsva_costs = calculate_lsva_charge_period(vehicle)
 
             # add LSVA/RPLP road charge calculation
