@@ -174,8 +174,23 @@ def calculate_lca():
                         eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
                         vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
-                        model.array.loc[dict(parameter="purchase cost")] *= eu_to_ch_price_levels_difference
-                        model.array.loc[dict(parameter="purchase cost")] *= eur_to_chf
+
+                        costs = [
+                            "battery onboard charging infrastructure cost",
+                            "combustion exhaust treatment cost",
+                            "combustion powertrain cost",
+                            "electric powertrain cost",
+                            "energy battery cost",
+                            "fuel cell cost",
+                            "fuel tank cost",
+                            "glider cost",
+                            "heat pump cost",
+                            "lightweighting cost",
+                            "power battery cost",
+                            "purchase cost"
+                        ]
+                        model.array.loc[dict(parameter=costs)] *= eu_to_ch_price_levels_difference
+                        model.array.loc[dict(parameter=costs)] *= eur_to_chf
 
                 if cost_type == "maintenance cost":
                     if "maintenance cost" in vehicle and vehicle["maintenance cost"] > 0:
