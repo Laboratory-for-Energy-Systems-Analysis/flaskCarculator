@@ -180,13 +180,13 @@ def calculate_lca():
                     continue
                 if cost_type == "amortised purchase cost":
                     vehicle["cost_results"][cost_type] *= factor_ownership
+                    eu_to_ch_price_levels_difference = 1.3
+                    vehicle["cost_results"][cost_type] *= eur_to_chf
+                    vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
+
                     if "purchase cost" in vehicle and vehicle["purchase cost"] > 0:
                         pass
                     else:
-                        eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
-                        vehicle["cost_results"][cost_type] *= eur_to_chf
-                        vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
-
                         costs = [
                             "battery onboard charging infrastructure cost",
                             "combustion exhaust treatment cost",
