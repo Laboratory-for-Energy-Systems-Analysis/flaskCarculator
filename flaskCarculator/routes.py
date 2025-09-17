@@ -161,6 +161,17 @@ def calculate_lca():
                 p: model.array.sel(parameter=p).mean().values.item() * factor for p in cost_results_parameters
             }
 
+            # currently, it is normalized by the technical lifetime kilometers of the truck
+            # and we want to normalize it instead by the kilometers driven during the ownership period
+            lifetime_km = vehicle.get("lifetime kilometers",
+                                      model.array.sel(parameter="lifetime kilometers").values.item())
+            years_of_ownership = vehicle["resale_year"] - vehicle["purchase_year"]
+            km_per_year = vehicle.get("kilometers per year",
+                                      model.array.sel(parameter="kilometers per year").values.item())
+            km_during_ownership = years_of_ownership * km_per_year
+
+            factor_ownership = lifetime_km / km_during_ownership
+
             # we need to figure out what was provided by the user (in CHF)
             # and what need to be converted from EUR to CHF
             eur_to_chf = 0.94
@@ -168,8 +179,9 @@ def calculate_lca():
                 if cost_type == "energy cost":
                     continue
                 if cost_type == "amortised purchase cost":
+                    vehicle["cost_results"][cost_type] *= factor_ownership
                     if "purchase cost" in vehicle and vehicle["purchase cost"] > 0:
-                        continue
+                        pass
                     else:
                         eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
@@ -199,6 +211,7 @@ def calculate_lca():
                         eu_to_ch_price_levels_difference = 1.3  # EUR prices are lower than CHF prices
                         vehicle["cost_results"][cost_type] *= eur_to_chf
                         vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
+
                         model.array.loc[dict(parameter="maintenance cost")] *= eu_to_ch_price_levels_difference
                         model.array.loc[dict(parameter="maintenance cost")] *= eur_to_chf
 
@@ -213,6 +226,7 @@ def calculate_lca():
                         model.array.loc[dict(parameter="insurance cost")] *= eur_to_chf
 
                 if cost_type == "amortised component replacement cost":
+                    vehicle["cost_results"][cost_type] *= factor_ownership
                     if vehicle["powertrain"] in ("BEV", "FCEV"):
                         if vehicle.get("replacement_cost_included", False) is False:
                             # we assume the components replacement cost is borne by the next owner
