@@ -214,9 +214,10 @@ def calculate_lca():
 
                 if cost_type == "amortised component replacement cost":
                     if vehicle["powertrain"] in ("BEV", "FCEV"):
-                        # we assume the components replacement cost is born by the next owner
-                        # hence we zero it out here
-                        vehicle["cost_results"][cost_type] = 0.0
+                        if vehicle.get("replacement_cost_included", False) is False:
+                            # we assume the components replacement cost is borne by the next owner
+                            # hence we zero it out here
+                            vehicle["cost_results"][cost_type] = 0.0
 
             lsva_costs = calculate_lsva_charge_period(vehicle)
 

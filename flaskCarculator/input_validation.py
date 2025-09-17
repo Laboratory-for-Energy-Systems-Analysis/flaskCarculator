@@ -150,7 +150,8 @@ def validate_input_data(data: dict) -> list:
         "depot charger installation per kW",
         "depot charger connection per kW",
         "depot charger capacity charger per kW-year",
-        "lifetime_years"
+        "lifetime_years",
+        "replacement_cost_included"
     ]
 
     errors = []
