@@ -184,7 +184,6 @@ def calculate_lca():
                     vehicle["cost_results"][cost_type] *= eur_to_chf
                     vehicle["cost_results"][cost_type] *= eu_to_ch_price_levels_difference
 
-
                     if "purchase cost" in vehicle and vehicle["purchase cost"] > 0:
                         pass
                     else:
