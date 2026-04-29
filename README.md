@@ -6,6 +6,10 @@ Use the API to calculate the environmental impacts of vehicles and their compone
 
 To install the API, clone this repository and install the dependencies.
 
+```bash
+python -m pip install -r requirements.txt
+```
+
 To run the API using Flask's development server, you can use the following command:
 
 ```bash
@@ -21,6 +25,17 @@ or using `gunicorn`:
     gunicorn --workers 3 wsgi:app
   
 ```
+
+## TCS validation
+
+The TCS branch includes two local validation scripts:
+
+```bash
+PYTHONPATH=. python dev/test_latest_carculator_compatibility.py
+PYTHONPATH=. python dev/compare_tcs_lca_results.py generate --output dev/lca_results_after_latest.xlsx
+```
+
+`dev/test_latest_carculator_compatibility.py` exercises `dev/tcs.py`, all rows in `dev/feed_2025_02_10_example.csv`, and a small set of non-TCS smoke payloads against the installed carculator stack. `dev/compare_tcs_lca_results.py` can generate Excel result workbooks from the TCS feed and compare two workbooks with numeric deltas.
 
 ## Usage
 

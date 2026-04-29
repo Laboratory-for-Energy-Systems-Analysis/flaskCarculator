@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from pprint import pprint
+from pathlib import Path
 
 # Define the URL for the Flask endpoint
 #url = "https://flaskcarculator-489d75c1c463.herokuapp.com/calculate-lca"
@@ -66,8 +67,8 @@ def check_results(results):
 
 
 # Load the data from the CSV file
-# fp = "feed_2025_02_10_example.csv"
-fp = "tbl_car_draft(1).csv"
+fp = Path(__file__).with_name("feed_2025_02_10_example.csv")
+# fp = "tbl_car_draft(1).csv"
 #fp = "tbl_car_draft.csv"
 df = pd.read_csv(fp, sep=";", low_memory=False, encoding="latin1")
 

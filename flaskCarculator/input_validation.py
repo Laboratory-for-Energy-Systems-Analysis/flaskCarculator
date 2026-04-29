@@ -290,6 +290,10 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
 
 
         new_vehicle["TtW energy"] = 0
+        has_phev_utility_factors = all(
+            field in new_vehicle
+            for field in ["electric utility factor", "electric utility factor (wltp)"]
+        )
         # fuel consumption, in L/100 km
         if "ver" in vehicle:
             if new_vehicle["powertrain"] not in ("PHEV-p", "PHEV-d"):
@@ -300,18 +304,25 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
 
                 new_vehicle["TtW energy"] += int(new_vehicle["fuel consumption"] * FUEL_SPECS[new_vehicle["powertrain"]]["lhv"] * 1000 / 100)
             else:
-                new_vehicle["fuel consumption"] = vehicle["ver"] * ((1 - new_vehicle["electric utility factor"]) / (1 - new_vehicle["electric utility factor (wltp)"]))
+                fuel_factor = 1
+                if has_phev_utility_factors:
+                    fuel_factor = (1 - new_vehicle["electric utility factor"]) / (1 - new_vehicle["electric utility factor (wltp)"])
+
+                new_vehicle["fuel consumption"] = vehicle["ver"] * fuel_factor
                 new_vehicle["TtW energy"] += int(new_vehicle["fuel consumption"] * FUEL_SPECS["ICEV-p"]["lhv"] * 1000 / 100)
-                new_vehicle["direct_co2"] = vehicle.get("direct_co2") * (
-                    (1 - new_vehicle["electric utility factor"]) / (1 - new_vehicle["electric utility factor (wltp)"])
-                )
+                if vehicle.get("direct_co2") is not None:
+                    new_vehicle["direct_co2"] = vehicle["direct_co2"] * fuel_factor
 
         if "ver_strom" in vehicle:
             if new_vehicle["powertrain"] not in ("PHEV-p", "PHEV-d"):
                 new_vehicle["electricity consumption"] = vehicle["ver_strom"]
                 new_vehicle["TtW energy"] += int(new_vehicle["electricity consumption"] * 3.6 * 1000 / 100)
             else:
-                new_vehicle["electricity consumption"] = vehicle["ver_strom"] * (new_vehicle["electric utility factor"] / new_vehicle["electric utility factor (wltp)"])
+                electricity_factor = 1
+                if has_phev_utility_factors:
+                    electricity_factor = new_vehicle["electric utility factor"] / new_vehicle["electric utility factor (wltp)"]
+
+                new_vehicle["electricity consumption"] = vehicle["ver_strom"] * electricity_factor
                 new_vehicle["TtW energy"] += int(new_vehicle["electricity consumption"] * 3.6 * 1000 / 100)
 
         # add other entries not in the mapping

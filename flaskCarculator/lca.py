@@ -136,7 +136,7 @@ def set_properties_for_plugin(model, params):
     if "driving mass" in params:
         model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
 
-    model.set_vehicle_mass()
+    set_vehicle_masses(model)
     model.set_component_masses()
     if "driving mass" in params:
         model["driving mass"] = params["driving mass"]
@@ -148,6 +148,15 @@ def set_properties_for_plugin(model, params):
     )
 
     return model
+
+def set_vehicle_masses(model):
+    """
+    Run the vehicle-mass calculation across carculator API versions.
+    """
+    if hasattr(model, "set_vehicle_masses"):
+        model.set_vehicle_masses()
+    else:
+        model.set_vehicle_mass()
 
 def initialize_model(params, nomenclature=None):
     """
@@ -330,7 +339,7 @@ def initialize_model(params, nomenclature=None):
                     * 3600
                     / m["TtW energy, electric mode"]
             )
-            m.set_vehicle_mass()
+            set_vehicle_masses(m)
             m.override_battery_capacity()
             m.calculate_ttw_energy()
             m.drop_hybrid()
