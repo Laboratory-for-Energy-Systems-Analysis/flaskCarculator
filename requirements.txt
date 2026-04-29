@@ -1,7 +1,13 @@
 Flask
-git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_utils.git
-git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator.git
-git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_truck.git
-git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_bus.git
-git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_two_wheeler.git
 gunicorn
+numpy
+openpyxl
+pandas
+PyYAML
+scipy
+xarray
+carculator_utils @ git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_utils.git@e431f50b5117513a82b7aee94d8d0ce9e4062744
+carculator @ git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator.git@75fd698a0ac3905240b54f0f3475752d97ab7f9c
+carculator_truck @ git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_truck.git@fff196e74c733faf1d7c6cdfffaf078ee9c3c008
+carculator_bus @ git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_bus.git@24b12888e3414145c2353ce9acb8e1ed0d4a9ccc
+carculator_two_wheeler @ git+https://github.com/Laboratory-for-Energy-Systems-Analysis/carculator_two_wheeler.git@52c2157d95597bf9be206949d2dc14a717128b9d

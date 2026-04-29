@@ -27,20 +27,26 @@ Install dependencies with:
 python -m pip install -r requirements.txt
 ```
 
-`requirements.txt` installs several dependencies directly from GitHub. Network access is required, and installs can be slow. The package also relies on transitive scientific dependencies such as `numpy`, `pandas`, `scipy`, `xarray`, `yaml`/PyYAML, and Excel-reading support.
+For a direct Git install:
+
+```bash
+python3.11 -m pip install "git+https://github.com/Laboratory-for-Energy-Systems-Analysis/flaskCarculator.git@TCS"
+```
+
+`setup.py` and `requirements.txt` both pin the validated Git commits of the carculator package family. This is intentional: branch installs are only reproducible when transitive Git dependencies are also pinned. Network access is required, and installs can be slow.
 
 ## Running The App
 
 For local development:
 
 ```bash
-flask --app app:create_app run --host 0.0.0.0 --port 5000
+flask --app flaskCarculator:create_app run --host 0.0.0.0 --port 5000
 ```
 
 For a deployment-like run:
 
 ```bash
-gunicorn "app:create_app()" --timeout 120
+gunicorn "flaskCarculator:create_app()" --timeout 120
 ```
 
 The README examples may reference port `8000`, while the dev scripts use port `5000`. Check the URL before running manual requests.

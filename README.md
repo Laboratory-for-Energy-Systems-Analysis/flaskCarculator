@@ -4,17 +4,28 @@ Use the API to calculate the environmental impacts of vehicles and their compone
 
 ## Installation
 
-To install the API, clone this repository and install the dependencies.
+To install the validated TCS branch directly from GitHub:
 
 ```bash
+python3.11 -m pip install "git+https://github.com/Laboratory-for-Energy-Systems-Analysis/flaskCarculator.git@TCS"
+```
+
+This installs the app plus the validated Git commits of `carculator`, `carculator_utils`, and the other carculator packages.
+
+For editable development, clone this repository and install the dependencies.
+
+```bash
+git clone --branch TCS https://github.com/Laboratory-for-Energy-Systems-Analysis/flaskCarculator.git
+cd flaskCarculator
 python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 To run the API using Flask's development server, you can use the following command:
 
 ```bash
   
-    flask run
+    flask --app flaskCarculator:create_app run --host 0.0.0.0 --port 5000
     
 ```
 
@@ -22,7 +33,7 @@ or using `gunicorn`:
 
 ```bash
   
-    gunicorn --workers 3 wsgi:app
+    gunicorn --workers 3 "flaskCarculator:create_app()"
   
 ```
 

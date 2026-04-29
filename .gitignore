@@ -1,0 +1,15 @@
+.DS_Store
+.idea/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Local/generated LCA outputs
+dev/lca_results*.xlsx
+dev/~$*.xlsx
+
+# Local exploratory artifacts
+dev/bafu_scores_*.csv
