@@ -33,9 +33,12 @@ or using `gunicorn`:
 
 ```bash
   
-    gunicorn --workers 3 "flaskCarculator:create_app()"
+    gunicorn -c gunicorn.conf.py "app:create_app()"
   
 ```
+
+The Gunicorn defaults in `gunicorn.conf.py` use a threaded worker and can be tuned with
+`WEB_CONCURRENCY`, `GUNICORN_THREADS`, and `GUNICORN_TIMEOUT`.
 
 ## TCS validation
 

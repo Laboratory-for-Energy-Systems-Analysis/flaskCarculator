@@ -1,1 +1,1 @@
-web: gunicorn "app:create_app()" --timeout 120
+web: gunicorn -c gunicorn.conf.py "app:create_app()"

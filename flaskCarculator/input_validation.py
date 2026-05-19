@@ -118,68 +118,81 @@ def validate_input_data(data: dict) -> list:
     errors = []
 
     for v, vehicle in enumerate(data["vehicles"]):
+        if not isinstance(vehicle, dict):
+            errors.append(f"Vehicle {v} must be a JSON object.")
+            continue
+
+        vehicle_id = vehicle.get("id", v)
+
         for field in required_fields:
             if field not in vehicle:
-                errors.append(f"Vehicle {vehicle['id']} missing required field: {field}")
+                errors.append(f"Vehicle {vehicle_id} missing required field: {field}")
 
         for key in vehicle:
             if key not in list_parameters:
-                errors.append(f"Vehicle {vehicle['id']} has invalid field: {key}")
+                errors.append(f"Vehicle {vehicle_id} has invalid field: {key}")
 
-        vehicle_mapping = get_mapping(vehicle["vehicle_type"])
+        if "vehicle_type" not in vehicle:
+            continue
+
+        try:
+            vehicle_mapping = get_mapping(vehicle["vehicle_type"])
+        except KeyError:
+            errors.append(f"Vehicle {vehicle_id} has invalid vehicle_type value: {vehicle['vehicle_type']}.")
+            continue
 
         # Check if 'size' is valid
         if vehicle.get("size") not in vehicle_mapping["size"]:
             errors.append(
-                f"Vehicle {vehicle['id']} has invalid size value: {vehicle.get('size')}. Should be one of {vehicle_mapping['size']}"
+                f"Vehicle {vehicle_id} has invalid size value: {vehicle.get('size')}. Should be one of {vehicle_mapping['size']}"
             )
 
         # Check if 'powertrain' is valid
         if vehicle.get("powertrain") not in vehicle_mapping["powertrain"]:
             errors.append(
-                f"Vehicle {vehicle['id']} has invalid powertrain value: {vehicle.get('powertrain')}. Should be one of {vehicle_mapping['powertrain']}"
+                f"Vehicle {vehicle_id} has invalid powertrain value: {vehicle.get('powertrain')}. Should be one of {vehicle_mapping['powertrain']}"
             )
 
         # Check if 'curb mass' is a positive number
         if "curb mass" in vehicle and not isinstance(vehicle["curb mass"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has invalid curb mass value: {vehicle['curb mass']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has invalid curb mass value: {vehicle['curb mass']} (must be a number)")
         elif "curb mass" in vehicle and vehicle["curb mass"] <= 0:
-            errors.append(f"Vehicle {vehicle['id']} has: curb mass must be greater than 0.")
+            errors.append(f"Vehicle {vehicle_id} has: curb mass must be greater than 0.")
 
         # Check if 'cargo mass' is a positive number
         if "cargo mass" in vehicle and not isinstance(vehicle["cargo mass"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has invalid cargo mass value: {vehicle['cargo mass']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has invalid cargo mass value: {vehicle['cargo mass']} (must be a number)")
         elif "cargo mass" in vehicle and vehicle["cargo mass"] <= 0:
-            errors.append(f"Vehicle {vehicle['id']}: cargo mass must be greater than 0.")
+            errors.append(f"Vehicle {vehicle_id}: cargo mass must be greater than 0.")
 
         # Check if 'driving mass' is a positive number
         if "driving mass" in vehicle and not isinstance(vehicle["driving mass"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has has invalid driving mass value: {vehicle['driving mass']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has has invalid driving mass value: {vehicle['driving mass']} (must be a number)")
         elif "driving mass" in vehicle and vehicle["driving mass"] <= 0:
-            errors.append(f"Vehicle {vehicle['id']}: driving mass must be greater than 0.")
+            errors.append(f"Vehicle {vehicle_id}: driving mass must be greater than 0.")
 
         # Check if engine powers are valid numbers
         if "engine power" in vehicle and not isinstance(vehicle["engine power"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has invalid engine power value: {vehicle['engine power']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has invalid engine power value: {vehicle['engine power']} (must be a number)")
 
         if "total engine power" in vehicle and not isinstance(vehicle["total engine power"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has invalid total engine power value: {vehicle['total engine power']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has invalid total engine power value: {vehicle['total engine power']} (must be a number)")
 
         # Check if 'fuel tank volume' is a valid number
         if "fuel tank volume" in vehicle and not isinstance(vehicle["fuel tank volume"], (int, float)):
-            errors.append(f"Vehicle {vehicle['id']} has invalid fuel tank mass value: {vehicle['fuel tank volume']} (must be a number)")
+            errors.append(f"Vehicle {vehicle_id} has invalid fuel tank mass value: {vehicle['fuel tank volume']} (must be a number)")
 
         # Check if `battery type` is valid
         if "battery technology" in vehicle and vehicle["battery technology"] not in vehicle_mapping["battery"]:
             errors.append(
-                f"Vehicle {vehicle['id']} has invalid battery type value: {vehicle['battery technology']}. Should be one of {vehicle_mapping['battery']}"
+                f"Vehicle {vehicle_id} has invalid battery type value: {vehicle['battery technology']}. Should be one of {vehicle_mapping['battery']}"
             )
 
         # Check if 'electric energy stored' is a valid number
         if "electric energy stored" in vehicle and not isinstance(vehicle["electric energy stored"], (int, float)):
             errors.append(f"Vehicle {v} has invalid battery capacity value: {vehicle['electric energy stored']} (must be a number)")
         elif "electric energy stored" in vehicle and vehicle["electric energy stored"] <= 0:
-            errors.append(f"Vehicle {vehicle['id']}: electric energy stored must be greater than 0.")
+            errors.append(f"Vehicle {vehicle_id}: electric energy stored must be greater than 0.")
 
         # Check if 'range' is a valid number
         if "range" in vehicle and not isinstance(vehicle["range"], (int, float)):
@@ -275,18 +288,26 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
             if vehicle["fzklasse"] in TCS_SIZE:
                 new_vehicle["size"] = TCS_SIZE[vehicle["fzklasse"]]
 
+        powertrain = None
         if "tsa" in vehicle:
-            if vehicle["tsa"] in TCS_POWERTRAIN:
-                new_vehicle["powertrain"] = TCS_POWERTRAIN[vehicle["tsa"]]
+            powertrain = TCS_POWERTRAIN.get(vehicle["tsa"])
+            if powertrain:
+                new_vehicle["powertrain"] = powertrain
+            else:
+                new_vehicle.pop("powertrain", None)
+                errors.append(f"Vehicle {vehicle['id']} has invalid tsa value: {vehicle['tsa']}.")
 
             if vehicle.get("bat_km_WLTP", 0) > 0:
-                if TCS_POWERTRAIN[vehicle["tsa"]] not in ["BEV", "FCEV"]:
-                    if TCS_POWERTRAIN.get(vehicle["tsa"]) in ["PHEV-p", "PHEV-d"]:
+                if powertrain not in ["BEV", "FCEV"]:
+                    if powertrain in ["PHEV-p", "PHEV-d"]:
                         real_uf, wltp_uf = calculate_utility_factor(vehicle["bat_km_WLTP"])
                         new_vehicle["electric utility factor"] = real_uf / 100
                         new_vehicle["electric utility factor (wltp)"] = wltp_uf / 100
                     else:
-                        errors.append(f"Vehicle {vehicle['id']} with powertrain {TCS_POWERTRAIN.get(vehicle['tsa'])} has a battery range of {vehicle['bat_km_WLTP']} but is not one of BEV, .")
+                        errors.append(
+                            f"Vehicle {vehicle['id']} with powertrain {powertrain} has a battery range of "
+                            f"{vehicle['bat_km_WLTP']}, but only BEV, FCEV, PHEV-p, or PHEV-d vehicles can use bat_km_WLTP."
+                        )
 
 
         new_vehicle["TtW energy"] = 0
@@ -295,7 +316,7 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
             for field in ["electric utility factor", "electric utility factor (wltp)"]
         )
         # fuel consumption, in L/100 km
-        if "ver" in vehicle:
+        if "ver" in vehicle and "powertrain" in new_vehicle:
             if new_vehicle["powertrain"] not in ("PHEV-p", "PHEV-d"):
                 if new_vehicle["powertrain"] == "FCEV":
                     new_vehicle["fuel consumption"] = vehicle["ver"] * 11123 # converts kg to liters at ambient pressure
@@ -313,7 +334,7 @@ def translate_tcs_to_carculator(data: dict, errors: list) -> [dict, list]:
                 if vehicle.get("direct_co2") is not None:
                     new_vehicle["direct_co2"] = vehicle["direct_co2"] * fuel_factor
 
-        if "ver_strom" in vehicle:
+        if "ver_strom" in vehicle and "powertrain" in new_vehicle:
             if new_vehicle["powertrain"] not in ("PHEV-p", "PHEV-d"):
                 new_vehicle["electricity consumption"] = vehicle["ver_strom"]
                 new_vehicle["TtW energy"] += int(new_vehicle["electricity consumption"] * 3.6 * 1000 / 100)
@@ -360,6 +381,9 @@ def validate_input(data: dict) -> [list, list]:
     """
     errors = []
 
+    if not isinstance(data, dict):
+        return data, ["Input data must be a JSON object."]
+
     MANDATORY_TERMS = [
         "nomenclature",
         "country_code",
@@ -369,6 +393,15 @@ def validate_input(data: dict) -> [list, list]:
     for term in MANDATORY_TERMS:
         if term not in data:
             errors.append(f"Missing mandatory term: {term}")
+
+    if errors:
+        return data, errors
+
+    if not isinstance(data["vehicles"], list):
+        return data, ["Term vehicles must be a list."]
+
+    if not data["vehicles"]:
+        return data, ["Term vehicles must include at least one vehicle."]
 
     if data.get("nomenclature") == "tcs":
         data, errors = translate_tcs_to_carculator(data, errors)

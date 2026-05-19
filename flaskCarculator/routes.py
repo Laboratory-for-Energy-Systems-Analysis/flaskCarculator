@@ -1,10 +1,9 @@
-from flask import Blueprint, request, jsonify, after_this_request, Response
+from flask import Blueprint, current_app, request, jsonify, Response
 from .input_validation import validate_input
 from .lca import initialize_model
 from .formatting import format_results_for_tcs, format_results_for_swisscargo
 import json
 import numpy as np
-from collections import OrderedDict
 
 main = Blueprint('main', __name__)
 
@@ -15,33 +14,55 @@ def calculate_lca():
     This function receives the input data from the user, validates it, and calculates the LCA results.
     :return: JSON response
     """
-    data = request.json
+    data = request.get_json(silent=True)
+
+    if data is None:
+        return jsonify(
+            {
+                "error": "Invalid JSON payload",
+                "details": [
+                    "Request body must be valid JSON with Content-Type application/json."
+                ],
+            }
+        ), 400
+
+    vehicles = data.get("vehicles") if isinstance(data, dict) else None
+    max_vehicles = current_app.config.get("MAX_VEHICLES_PER_REQUEST")
+    if isinstance(vehicles, list) and max_vehicles and len(vehicles) > max_vehicles:
+        return jsonify(
+            {
+                "error": "Too many vehicles",
+                "details": [
+                    f"At most {max_vehicles} vehicles can be processed in one request."
+                ],
+            }
+        ), 413
 
     # Validate the received data
     data, validation_errors = validate_input(data)
     if len(validation_errors) > 0:
         return jsonify({"error": "Invalid input data", "details": validation_errors}), 400
 
-    models = {vehicle["id"]: initialize_model(vehicle, data.get("nomenclature")) for vehicle in data["vehicles"]}
-
     try:
         for vehicle in data["vehicles"]:
+            model = initialize_model(vehicle, data.get("nomenclature"))
+
             if data.get("nomenclature") == "tcs":
                 vehicle["results_ecoinvent"] = format_results_for_tcs(
-                    data=models[vehicle["id"]],
+                    data=model,
                     params=vehicle
                 )
                 vehicle["results_bafu"] = format_results_for_tcs(
-                    data=models[vehicle["id"]],
+                    data=model,
                     params=vehicle,
                     bafu=True
                 )
             elif data.get("nomenclature") == "swisscargo":
                 vehicle["results"] = format_results_for_swisscargo(
-                    data=models[vehicle["id"]],
+                    data=model,
                 )
             else:
-                vehicle["results"] = serialize_xarray(models[vehicle["id"]].results)
+                vehicle["results"] = serialize_xarray(model.results)
 
             default_vehicle_parameters = [
                 "lifetime kilometers",
@@ -95,29 +116,23 @@ def calculate_lca():
             ]
 
             for p in default_vehicle_parameters:
-                if p in models[vehicle["id"]].array.parameter.values:
-                    val = models[vehicle["id"]].array.sel(parameter=p).mean().values.item()
+                if p in model.array.parameter.values:
+                    val = model.array.sel(parameter=p).mean().values.item()
                     if not np.isfinite(val):  # Detects NaN, inf, -inf
                         val = 0.0
                     vehicle[p] = val
 
 
-            vehicle["battery chemistry"] = list(models[vehicle["id"]].energy_storage["electric"].values())[0]
-            vehicle["indicators"] = models[vehicle["id"]].inventory.method
-            vehicle["indicator type"] = models[vehicle["id"]].inventory.indicator
-            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["functional unit"] = models[vehicle["id"]].inventory.func_unit
-            vehicle["scenario"] = models[vehicle["id"]].inventory.scenario
-            vehicle["carculator version"] = ".".join(map(str, models[vehicle["id"]].version))
-            vehicle["ecoinvent version"] = models[vehicle["id"]].ecoinvent_version
+            vehicle["battery chemistry"] = list(model.energy_storage["electric"].values())[0]
+            vehicle["indicators"] = model.inventory.method
+            vehicle["indicator type"] = model.inventory.indicator
+            vehicle["scenario"] = model.inventory.scenario
+            vehicle["functional unit"] = model.inventory.func_unit
+            vehicle["scenario"] = model.inventory.scenario
+            vehicle["carculator version"] = ".".join(map(str, model.version))
+            vehicle["ecoinvent version"] = model.ecoinvent_version
 
-        # Clean up memory after the response is sent
-        @after_this_request
-        def cleanup(response):
-            nonlocal models
-            models.clear()  # Clear the dictionary to release memory
-            del models  # Explicitly delete the variable
-            return response
+            del model
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
