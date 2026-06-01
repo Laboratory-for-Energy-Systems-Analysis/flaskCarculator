@@ -250,7 +250,7 @@ def calculate_utility_factor(ev_range):
     f_real = interp1d(range, real_uf, kind='linear', fill_value='extrapolate')
     f_wltp = interp1d(range, wltp_uf, kind='linear', fill_value='extrapolate')
 
-    return float(f_real(ev_range)), float(f_wltp(ev_range))
+    return min(float(f_real(ev_range)), 90), min(float(f_wltp(ev_range)), 90)
 
 def translate_swisscargo_to_carculator(data: dict) -> dict:
     """
