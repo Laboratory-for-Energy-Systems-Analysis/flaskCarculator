@@ -1,5 +1,5 @@
 from app import create_app
-from flaskCarculator.input_validation import validate_input
+from flaskCarculator.input_validation import calculate_utility_factor, validate_input
 
 
 def make_client(**config):
@@ -86,3 +86,42 @@ def test_validate_input_rejects_non_object_vehicle():
     )
 
     assert errors == ["Vehicle 0 must be a JSON object."]
+
+
+def test_phev_utility_factor_is_capped_at_90_percent():
+    assert calculate_utility_factor(200) == (70.0, 90)
+
+
+def test_tcs_phev_with_high_wltp_range_has_positive_ttw_energy():
+    data, errors = validate_input(
+        {
+            "nomenclature": "tcs",
+            "country_code": "CH",
+            "vehicles": [
+                {
+                    "id": 340271,
+                    "vehicle_type": "car",
+                    "tsa": "C1",
+                    "year": 2026,
+                    "fzklasse": 30004,
+                    "leer": 2112,
+                    "nutz": 500,
+                    "gesamt": 2612,
+                    "kw": 102,
+                    "kw_sl": 257,
+                    "tank": 60,
+                    "ver": 0.9,
+                    "bat_cap": 39.6,
+                    "bat_typ": "NMC-811",
+                    "bat_km_WLTP": 200,
+                    "ver_strom": 20,
+                    "direct_co2": 23,
+                    "fuel_co2": 27,
+                }
+            ],
+        }
+    )
+
+    assert errors == []
+    assert data["vehicles"][0]["electric utility factor (wltp)"] == 0.9
+    assert data["vehicles"][0]["TtW energy"] > 0
