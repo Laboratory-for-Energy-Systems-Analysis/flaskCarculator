@@ -13,3 +13,6 @@ dev/~$*.xlsx
 
 # Local exploratory artifacts
 dev/bafu_scores_*.csv
+
+# Local agent guidance
+AGENTS.md
