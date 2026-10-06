@@ -1,17 +1,21 @@
 import numpy as np
 import pandas as pd
-from carculator import CarInputParameters, CarModel, fill_xarray_from_input_parameters, InventoryCar
+from carculator import CarInputParameters, CarModel, InventoryCar
 from carculator import __version__ as carculator_version
-from carculator_truck import TruckInputParameters, TruckModel, InventoryTruck
-from carculator_truck import __version__ as carculator_truck_version
+from carculator import fill_xarray_from_input_parameters
 from carculator_bus import BusInputParameters, BusModel, InventoryBus
 from carculator_bus import __version__ as carculator_bus_version
-from carculator_two_wheeler import TwoWheelerInputParameters, TwoWheelerModel, InventoryTwoWheeler
+from carculator_truck import InventoryTruck, TruckInputParameters, TruckModel
+from carculator_truck import __version__ as carculator_truck_version
+from carculator_two_wheeler import (
+    InventoryTwoWheeler,
+    TwoWheelerInputParameters,
+    TwoWheelerModel,
+)
 from carculator_two_wheeler import __version__ as carculator_two_wheeler_version
 
-from .data.mapping import FUEL_SPECS, DATA_DIR
+from .data.mapping import DATA_DIR, FUEL_SPECS
 from .output_validation import validate_output_data
-
 
 models = {
     "car": {
@@ -19,30 +23,31 @@ models = {
         "inventory": InventoryCar,
         "input_parameters": CarInputParameters,
         "version": carculator_version,
-        "ecoinvent version": "3.10.0"
+        "ecoinvent version": "3.10.0",
     },
     "truck": {
         "model": TruckModel,
         "inventory": InventoryTruck,
         "input_parameters": TruckInputParameters,
         "version": carculator_truck_version,
-        "ecoinvent version": "3.10.0"
+        "ecoinvent version": "3.10.0",
     },
     "bus": {
         "model": BusModel,
         "inventory": InventoryBus,
         "input_parameters": BusInputParameters,
         "version": carculator_bus_version,
-        "ecoinvent version": "3.10.0"
+        "ecoinvent version": "3.10.0",
     },
     "two_wheeler": {
         "model": TwoWheelerModel,
         "inventory": InventoryTwoWheeler,
         "input_parameters": TwoWheelerInputParameters,
         "version": carculator_two_wheeler_version,
-        "ecoinvent version": "3.10.0"
-    }
+        "ecoinvent version": "3.10.0",
+    },
 }
+
 
 def load_bafu_emission_factors():
     """
@@ -58,8 +63,12 @@ def set_combustion_power_share(array, params):
     """
     Sets the combustion power share in the array based on the powertrain type.
     """
-    if params["powertrain"] in ["HEV-d", "HEV-p"] and all(x in params for x in ["primary_engine_power", "total_engine_power"]):
-        array.loc[dict(parameter="combustion power share")] = params["primary_engine_power"] / params["total_engine_power"]
+    if params["powertrain"] in ["HEV-d", "HEV-p"] and all(
+        x in params for x in ["primary_engine_power", "total_engine_power"]
+    ):
+        array.loc[dict(parameter="combustion power share")] = (
+            params["primary_engine_power"] / params["total_engine_power"]
+        )
     elif params["powertrain"] in ["ICEV-d", "ICEV-p", "ICEV-g"]:
         array.loc[dict(parameter="combustion power share")] = 1
     elif params["powertrain"] in ["BEV", "FCEV"]:
@@ -74,7 +83,9 @@ def set_vehicle_properties_before_run(model, params):
     """
     if params.get("fuel tank volume", 0) > 0:
         fuel_density = FUEL_SPECS[params["powertrain"]]["density"]
-        model.array.loc[dict(parameter="fuel mass")] = params["fuel tank volume"] * fuel_density
+        model.array.loc[dict(parameter="fuel mass")] = (
+            params["fuel tank volume"] * fuel_density
+        )
 
     return model
 
@@ -91,12 +102,20 @@ def set_vehicle_properties_after_run(model, params):
         model.array.loc[dict(parameter="TtW energy")] = params["TtW energy"]
 
     if params.get("fuel consumption", 0) > 0:
-        model.array.loc[dict(parameter="fuel consumption")] = params["fuel consumption"] / 100
-        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (params["fuel consumption"] / 100) * 42600
+        model.array.loc[dict(parameter="fuel consumption")] = (
+            params["fuel consumption"] / 100
+        )
+        model.array.loc[dict(parameter="TtW energy, combustion mode")] = (
+            params["fuel consumption"] / 100
+        ) * 42600
 
     if params.get("electricity consumption", 0) > 0:
-        model.array.loc[dict(parameter="electricity consumption")] = params["electricity consumption"] / 100
-        model.array.loc[dict(parameter="TtW energy, electric mode")] = params["electricity consumption"] / 100 * 3600
+        model.array.loc[dict(parameter="electricity consumption")] = (
+            params["electricity consumption"] / 100
+        )
+        model.array.loc[dict(parameter="TtW energy, electric mode")] = (
+            params["electricity consumption"] / 100 * 3600
+        )
 
     if params.get("range", 0) > 0:
         model.array.loc[dict(parameter="range")] = params["range"]
@@ -107,6 +126,7 @@ def set_vehicle_properties_after_run(model, params):
 
     return model
 
+
 def set_properties_for_plugin(model, params):
     """
     Sets various properties of the vehicle model based on the provided parameters.
@@ -115,26 +135,49 @@ def set_properties_for_plugin(model, params):
     :return:
     """
     if "electricity consumption" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="electricity consumption")] = params["electricity consumption"] / 100
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="electricity consumption")
+        ] = (params["electricity consumption"] / 100)
     if "fuel consumption" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="fuel consumption")] = params["fuel consumption"] / 100
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="fuel consumption")
+        ] = (params["fuel consumption"] / 100)
     if "TtW energy" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="TtW energy")] = params["TtW energy"]
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="TtW energy")
+        ] = params["TtW energy"]
     if "electric energy stored" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="electric energy stored")] = params["electric energy stored"]
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="electric energy stored")
+        ] = params["electric energy stored"]
 
     if "curb mass" in params and "powertrain" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="glider base mass")] += (params["curb mass"] - model.array.loc[dict(powertrain=params["powertrain"], parameter="curb mass")])
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="glider base mass")
+        ] += (
+            params["curb mass"]
+            - model.array.loc[
+                dict(powertrain=params["powertrain"], parameter="curb mass")
+            ]
+        )
 
     if "primary power" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="combustion power")] = params["primary power"]
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="combustion power")
+        ] = params["primary power"]
     if "power" in params and "primary power" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="electric power")] = params["power"] - params["primary power"]
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="electric power")
+        ] = (params["power"] - params["primary power"])
     if "power" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = params["power"]
+        model.array.loc[dict(powertrain=params["powertrain"], parameter="power")] = (
+            params["power"]
+        )
 
     if "driving mass" in params:
-        model.array.loc[dict(powertrain=params["powertrain"], parameter="driving mass")] = params["driving mass"]
+        model.array.loc[
+            dict(powertrain=params["powertrain"], parameter="driving mass")
+        ] = params["driving mass"]
 
     set_vehicle_masses(model)
     model.set_component_masses()
@@ -142,12 +185,17 @@ def set_properties_for_plugin(model, params):
         model["driving mass"] = params["driving mass"]
 
     model.array.loc[dict(parameter="range")] = (
-        model.array.loc[dict(parameter="electric energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, electric mode")]
+        model.array.loc[dict(parameter="electric energy stored")]
+        * 3600
+        / model.array.loc[dict(parameter="TtW energy, electric mode")]
     ) + (
-        model.array.loc[dict(parameter="oxidation energy stored")] * 3600 / model.array.loc[dict(parameter="TtW energy, combustion mode")]
+        model.array.loc[dict(parameter="oxidation energy stored")]
+        * 3600
+        / model.array.loc[dict(parameter="TtW energy, combustion mode")]
     )
 
     return model
+
 
 def set_vehicle_masses(model):
     """
@@ -157,6 +205,7 @@ def set_vehicle_masses(model):
         model.set_vehicle_masses()
     else:
         model.set_vehicle_mass()
+
 
 def initialize_model(params, nomenclature=None):
     """
@@ -169,10 +218,9 @@ def initialize_model(params, nomenclature=None):
     ip.static()
 
     _, array = fill_xarray_from_input_parameters(
-        ip,
-        scope={"powertrain": [params["powertrain"]], "size": [params["size"]]}
+        ip, scope={"powertrain": [params["powertrain"]], "size": [params["size"]]}
     )
-    array = array.interp(year=[params["year"]], kwargs={'fill_value': 'extrapolate'})
+    array = array.interp(year=[params["year"]], kwargs={"fill_value": "extrapolate"})
     array = set_combustion_power_share(array, params)
 
     model = models[params["vehicle_type"]]["model"]
@@ -184,14 +232,18 @@ def initialize_model(params, nomenclature=None):
     if params.get("kilometers per year", None):
         array.loc[dict(parameter="kilometers per year")] = params["kilometers per year"]
         annual_mileage = {
-            (params["powertrain"], params["size"], params["year"]): params["kilometers per year"]
+            (params["powertrain"], params["size"], params["year"]): params[
+                "kilometers per year"
+            ]
         }
 
     energy_storage = None
     if params.get("electric energy stored", 0) > 0:
         energy_storage = {
             "capacity": {
-                (params["powertrain"], params["size"], params["year"]): params["electric energy stored"]
+                (params["powertrain"], params["size"], params["year"]): params[
+                    "electric energy stored"
+                ]
             },
         }
 
@@ -199,7 +251,9 @@ def initialize_model(params, nomenclature=None):
         if energy_storage is None:
             energy_storage = {}
         energy_storage["electric"] = {
-            (params["powertrain"], params["size"], params["year"]): params["battery technology"]
+            (params["powertrain"], params["size"], params["year"]): params[
+                "battery technology"
+            ]
         }
 
     power = None
@@ -229,69 +283,56 @@ def initialize_model(params, nomenclature=None):
 
         if params["powertrain"] == "PHEV-d":
             payload.update(
-                {
-                    ("PHEV-c-d", params["size"], params["year"]): params["payload"]
-                }
+                {("PHEV-c-d", params["size"], params["year"]): params["payload"]}
             )
             payload.update(
-                {
-                    ("PHEV-e", params["size"], params["year"]): params["payload"]
-                }
+                {("PHEV-e", params["size"], params["year"]): params["payload"]}
             )
         if params["powertrain"] == "PHEV-p":
             payload.update(
-                {
-                    ("PHEV-c-p", params["size"], params["year"]): params["payload"]
-                }
+                {("PHEV-c-p", params["size"], params["year"]): params["payload"]}
             )
             payload.update(
-                {
-                    ("PHEV-e", params["size"], params["year"]): params["payload"]
-                }
+                {("PHEV-e", params["size"], params["year"]): params["payload"]}
             )
 
     target_range = None
     if params.get("target_range", 0) > 0:
         target_range = {
-            (params["powertrain"], params["size"], params["year"]): params["target_range"]
+            (params["powertrain"], params["size"], params["year"]): params[
+                "target_range"
+            ]
         }
         if params["powertrain"] == "PHEV-d":
             target_range.update(
-                {
-                    ("PHEV-c-d", params["size"], params["year"]): params["target_range"]
-                }
+                {("PHEV-c-d", params["size"], params["year"]): params["target_range"]}
             )
             target_range.update(
-                {
-                    ("PHEV-e", params["size"], params["year"]): params["target_range"]
-                }
+                {("PHEV-e", params["size"], params["year"]): params["target_range"]}
             )
         if params["powertrain"] == "PHEV-p":
-            payload.update(
-                {
-                    ("PHEV-c-p", params["size"], params["year"]): params["target_range"]
-                }
+            target_range.update(
+                {("PHEV-c-p", params["size"], params["year"]): params["target_range"]}
             )
-            payload.update(
-                {
-                    ("PHEV-e", params["size"], params["year"]): params["target_range"]
-                }
+            target_range.update(
+                {("PHEV-e", params["size"], params["year"]): params["target_range"]}
             )
-
 
     if "average passengers" in params:
         array.loc[dict(parameter="average passengers")] = params["average passengers"]
 
     # build fuel blends
     fuel_blends = {}
-    for fuel in [
-        "diesel",
-        "petrol",
-        "methane",
-        "hydrogen"
-    ]:
+    for fuel in ["diesel", "petrol", "methane", "hydrogen"]:
         if fuel in params:
-            fuel_blends[fuel] = {"primary": {"type": params[fuel], "share": [1.0, ]}}
+            fuel_blends[fuel] = {
+                "primary": {
+                    "type": params[fuel],
+                    "share": [
+                        1.0,
+                    ],
+                }
+            }
 
     cycle = None
     if params.get("cycle", None):
@@ -324,21 +365,20 @@ def initialize_model(params, nomenclature=None):
     if params["powertrain"] in ["PHEV-d", "PHEV-p"]:
         m = set_properties_for_plugin(m, params)
 
-
     if params.get("electric energy stored", 0) > 0:
         m["electric energy stored"] = params["electric energy stored"]
-        m["battery cell mass"] = m["electric energy stored"] / m["battery cell energy density"]
-        m["energy battery mass"] = m["battery cell mass"] / m["battery cell mass share"]
-        m["battery BoP mass"] = (
-                m["energy battery mass"] - m["battery cell mass"]
+        m["battery cell mass"] = (
+            m["electric energy stored"] / m["battery cell energy density"]
         )
+        m["energy battery mass"] = m["battery cell mass"] / m["battery cell mass share"]
+        m["battery BoP mass"] = m["energy battery mass"] - m["battery cell mass"]
         if params["powertrain"] not in ["PHEV-d", "PHEV-p"]:
-            var = "target range" if "target range" in m.array.parameter.values else "range"
-            m[var] = (
-                    m["electric energy stored"]
-                    * 3600
-                    / m["TtW energy, electric mode"]
+            var = (
+                "target range"
+                if "target range" in m.array.parameter.values
+                else "range"
             )
+            m[var] = m["electric energy stored"] * 3600 / m["TtW energy, electric mode"]
             set_vehicle_masses(m)
             m.override_battery_capacity()
             m.calculate_ttw_energy()
@@ -409,7 +449,7 @@ def initialize_model(params, nomenclature=None):
         indicator=indicator,
         scenario=scenario,
         functional_unit=func_unit,
-        background_configuration=electricity_mix
+        background_configuration=electricity_mix,
     )
     results = m.inventory.calculate_impacts()
     m.results = results.sel(value=0)
@@ -426,20 +466,18 @@ def initialize_model(params, nomenclature=None):
             "climate change",
             "energy resources: non-renewable",
             "energy resources: renewable",
-            "total"
+            "total",
         ]:
             if category != "total":
-                factors = df.loc[
-                    df["impact"] == category
-                ]
+                factors = df.loc[df["impact"] == category]
             else:
-                factors = df.loc[
-                    df["impact"] != "climate change"
-                ]
+                factors = df.loc[df["impact"] != "climate change"]
                 factors = factors.groupby("name").sum(numeric_only=True).reset_index()
 
             for name in factors["name"].values:
-                m.inventory.B.loc[dict(activity=eval(name), category=category)] = factors.loc[factors["name"] == name, "score"].values.item(0)
+                m.inventory.B.loc[dict(activity=eval(name), category=category)] = (
+                    factors.loc[factors["name"] == name, "score"].values.item(0)
+                )
 
         results = m.inventory.calculate_impacts()
         m.bafu_results = results.sel(value=0)

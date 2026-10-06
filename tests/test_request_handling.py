@@ -125,3 +125,34 @@ def test_tcs_phev_with_high_wltp_range_has_positive_ttw_energy():
     assert errors == []
     assert data["vehicles"][0]["electric utility factor (wltp)"] == 0.9
     assert data["vehicles"][0]["TtW energy"] > 0
+
+
+def test_phev_range_override_does_not_change_payload(monkeypatch):
+    import pytest
+    from flaskCarculator import lca
+
+    class ConstructorReached(Exception):
+        pass
+
+    captured = {}
+
+    def capture_model(array, **kwargs):
+        captured.update(kwargs)
+        raise ConstructorReached
+
+    monkeypatch.setitem(lca.models["car"], "model", capture_model)
+    with pytest.raises(ConstructorReached):
+        lca.initialize_model(
+            {
+                "vehicle_type": "car",
+                "powertrain": "PHEV-p",
+                "size": "Medium",
+                "year": 2020,
+                "target_range": 50,
+                "payload": 300,
+            }
+        )
+    for powertrain in ("PHEV-p", "PHEV-c-p", "PHEV-e"):
+        key = (powertrain, "Medium", 2020)
+        assert captured["target_range"][key] == 50
+        assert captured["payload"][key] == 300
